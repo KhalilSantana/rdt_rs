@@ -10,12 +10,10 @@ mod packet;
 mod rdt_rx;
 mod rdt_tx;
 mod udt;
-use rdt_rx::ReceiveData;
 
 use crate::packet::*;
 use crate::rdt_rx::ReliableDataTransportRX;
-use crate::rdt_tx::ReliableDataTransport;
-use crate::rdt_tx::SendData;
+use crate::rdt_tx::ReliableDataTransportTX;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 fn main() {
@@ -23,18 +21,17 @@ fn main() {
     let pkt_data = rdt_tx::split_input_data(data);
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
-    let rdt_tx = ReliableDataTransport::new(tx_sender, rx_receiver);
     let t0 = thread::spawn(move || {
-        let mut in_send = ReliableDataTransport::<SendData>::from(rdt_tx);
-        in_send.send(&data);
-        dbg!("{}", in_send);
+        let mut rdt_tx =
+            ReliableDataTransportTX::new(tx_sender, rx_receiver, rdt_tx::split_input_data(data));
+        loop {
+            rdt_tx.next();
+        }
     });
     let t1 = thread::spawn(move || {
-        let rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_sender);
-        let mut in_receive = ReliableDataTransportRX::<ReceiveData>::from(rdt_rx);
-        match in_receive.receive() {
-            Err(..) => println!("Some error"),
-            Ok(d) => println!("Got data {}", d),
+        let mut rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_sender);
+        loop {
+            rdt_rx.next();
         }
     });
     t0.join().unwrap();

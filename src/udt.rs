@@ -13,12 +13,12 @@ impl UnreliableDataTransport {
         Self { tx, rx }
     }
     pub fn send(&self, pkt: &Packet) {
-        dbg!("{}", &pkt);
+        //        dbg!(&pkt);
         self.tx.send(pkt.clone()).unwrap();
     }
     pub fn receive(&self) -> Packet {
         let response = self.rx.recv().unwrap();
-        dbg!("{}", &response);
+        //        dbg!(&response);
         response
     }
 

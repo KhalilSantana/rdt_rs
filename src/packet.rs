@@ -2,22 +2,50 @@
 pub struct Packet {
     pub seq_num: u32,
     pub ack_num: u32,
-    pub is_ack: bool,
+    pub pkt_type: PacketType,
     pub pkt_data: u32,
     pub checksum: u32,
 }
+#[derive(Clone, Debug)]
+pub enum PacketType {
+    Acknowlodge,
+    NotAcklodge,
+}
 impl Packet {
-    pub fn new(seq_num: u32, ack_num: u32, pkt_data: u32) -> Self {
+    pub fn new(seq_num: u32, ack_num: u32, pkt_type: PacketType, pkt_data: u32) -> Self {
         let mut tmp = Packet {
             seq_num,
             ack_num,
-            is_ack: true,
+            pkt_type,
             pkt_data,
             checksum: 0,
         };
         tmp.create_checksum();
         tmp
     }
+    pub fn ack(seq_num: u32, ack_num: u32) -> Self {
+        let mut pkt = Packet {
+            seq_num,
+            ack_num,
+            pkt_type: PacketType::Acknowlodge,
+            pkt_data: 0,
+            checksum: 0,
+        };
+        pkt.create_checksum();
+        pkt
+    }
+    pub fn nack(seq_num: u32, ack_num: u32) -> Self {
+        let mut pkt = Packet {
+            seq_num,
+            ack_num,
+            pkt_type: PacketType::NotAcklodge,
+            pkt_data: 0,
+            checksum: 0,
+        };
+        pkt.create_checksum();
+        pkt
+    }
+
     pub fn create_checksum(&mut self) {
         self.checksum = 42;
     }

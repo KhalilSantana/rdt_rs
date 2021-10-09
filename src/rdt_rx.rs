@@ -3,70 +3,60 @@ use crate::udt::UnreliableDataTransport;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::Cursor;
 use std::sync::mpsc::{Receiver, Sender};
-pub struct ReliableDataTransportRX<S> {
-    state: S,
+#[derive(Debug)]
+pub struct ReliableDataTransportRX {
+    state: RdtRXState,
+    next_state: RdtRXState,
     seq_num: u32,
     ack_num: u32,
-    buffer: Vec<Packet>,
-    data: Vec<u32>,
     udt_layer: UnreliableDataTransport,
 }
-#[derive(Debug)]
-pub struct Waiting {}
-#[derive(Debug)]
-pub struct ReceiveData {}
-#[derive(Debug)]
-pub struct SendACK {}
-#[derive(Debug)]
-pub struct SendNACK {}
-
-impl ReliableDataTransportRX<Waiting> {
+#[derive(Debug, Clone, Copy)]
+pub enum RdtRXState {
+    Waiting,
+    ReceiveData,
+    SendAck,
+    SendNack,
+}
+impl ReliableDataTransportRX {
     pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>) -> Self {
         let rdt = ReliableDataTransportRX {
-            state: Waiting {},
+            state: RdtRXState::Waiting,
+            next_state: RdtRXState::Waiting,
             seq_num: 0,
             ack_num: 0,
-            buffer: vec![],
-            data: vec![],
             udt_layer: UnreliableDataTransport::new(tx, rx),
         };
         rdt
     }
-}
-
-impl From<ReliableDataTransportRX<Waiting>> for ReliableDataTransportRX<ReceiveData> {
-    fn from(sm: ReliableDataTransportRX<Waiting>) -> ReliableDataTransportRX<ReceiveData> {
-        ReliableDataTransportRX {
-            state: ReceiveData {},
-            ack_num: sm.ack_num,
-            seq_num: sm.seq_num,
-            buffer: sm.buffer,
-            data: vec![],
-            udt_layer: sm.udt_layer,
-        }
-    }
-}
-impl ReliableDataTransportRX<ReceiveData> {
-    pub fn receive(&mut self) -> Result<u32, u32> {
-        if self.buffer.len() != 0 {
-            let pkt = self.buffer.pop().unwrap();
-            if !pkt.checksum_ok() {
-                return Err(self.ack_num);
+    pub fn next(&mut self) {
+        dbg!(&self);
+        self.state = self.next_state;
+        match self.state {
+            RdtRXState::Waiting => {
+                let pkt = self.udt_layer.receive();
+                match (pkt.checksum_ok(), pkt.pkt_type) {
+                    (true, PacketType::Acknowlodge) => {
+                        dbg!("[RX] Got packet data {?}", pkt.pkt_data);
+                    }
+                    (_, _) => {
+                        self.next_state = RdtRXState::SendNack;
+                    }
+                }
             }
-            return Ok(pkt.pkt_data);
-        }
-        Err(0)
-    }
-}
-
-impl ReliableDataTransportRX<SendACK> {
-    pub fn send(&mut self, data: &[u8]) {
-        let pkt = Packet::new(self.seq_num, self.ack_num, 0);
-        self.udt_layer.send(&pkt);
-        let response = self.udt_layer.receive();
-        if !response.checksum_ok() || !response.is_ack {
-            self.seq_num += 1;
-            self.ack_num += 1;
+            RdtRXState::SendAck => {
+                let pkt = Packet::ack(self.seq_num, self.ack_num);
+                self.ack_num += 1;
+                self.udt_layer.send(&pkt);
+                self.next_state = RdtRXState::Waiting;
+            }
+            RdtRXState::SendNack => {
+                let pkt = Packet::nack(self.seq_num, self.ack_num);
+                self.udt_layer.send(&pkt)
+            }
+            _ => {
+                todo!("Implement");
+            }
         }
     }
 }
