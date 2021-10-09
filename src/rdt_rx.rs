@@ -1,7 +1,5 @@
 use crate::packet::*;
 use crate::udt::UnreliableDataTransport;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::io::Cursor;
 use std::sync::mpsc::{Receiver, Sender};
 #[derive(Debug)]
 pub struct ReliableDataTransportRX {
@@ -14,7 +12,7 @@ pub struct ReliableDataTransportRX {
 #[derive(Debug, Clone, Copy)]
 pub enum RdtRXState {
     Waiting,
-    ReceiveData,
+    //    ReceiveData,
     SendAck,
     SendNack,
 }
@@ -54,19 +52,6 @@ impl ReliableDataTransportRX {
                 let pkt = Packet::nack(self.seq_num, self.ack_num);
                 self.udt_layer.send(&pkt)
             }
-            _ => {
-                todo!("Implement");
-            }
         }
     }
-}
-
-pub fn split_input_data(data: &[u8]) -> Vec<u32> {
-    let mut rdr = Cursor::new(data);
-    let mut pkt_data: Vec<u32> = Vec::with_capacity(data.len() / 4);
-    for i in 0..data.len() / 4 {
-        let d = rdr.read_u32::<LittleEndian>().unwrap();
-        pkt_data.push(d);
-    }
-    pkt_data
 }
