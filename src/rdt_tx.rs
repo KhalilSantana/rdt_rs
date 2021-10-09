@@ -31,10 +31,6 @@ impl ReliableDataTransportTX {
     }
     pub fn next(&mut self) {
         dbg!(&self);
-        if self.data_buff.len() == 0 {
-            println!("Entire data buffer sent, quitting");
-            std::process::exit(0);
-        }
         self.state = self.next_state;
         match self.state {
             RdtTXState::Waiting => {
@@ -45,6 +41,10 @@ impl ReliableDataTransportTX {
                         self.data_buff.pop();
                         self.seq_num += 1;
                         self.next_state = RdtTXState::SendData;
+                        if self.data_buff.len() == 0 {
+                            println!("Entire data buffer sent, quitting");
+                            std::process::exit(0);
+                        }
                     }
                     (_, _) => {
                         self.next_state = RdtTXState::SendData;
