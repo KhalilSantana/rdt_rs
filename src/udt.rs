@@ -27,17 +27,16 @@ impl UnreliableDataTransport {
         let _ = match rand {
             //0..=10 => println!("{} - Loss", pkt.seq_num),
             //11..=19 => println!("{} - Corrupt data", pkt.seq_num),
-            // 20..=29 => {
-            //     println!(
-            //         "[UDT] - {} - {} - Corrupt Checksum",
-            //         pkt.seq_num, self.label
-            //     );
-            //     stdout().flush();
-            //     let mut pkt2 = pkt.clone();
-            //     pkt2.corrupt_headers();
-            //     println!("{}", pkt2.checksum_ok());
-            //     self.send(&pkt2);
-            // }
+            20..=29 => {
+                println!(
+                    "[UDT] - {} - {} - Corrupt Checksum",
+                    pkt.seq_num, self.label
+                );
+                stdout().flush();
+                let mut pkt2 = pkt.clone();
+                pkt2.corrupt_headers();
+                self.send(&pkt2);
+            }
             _ => {
                 self.send(pkt);
                 println!("[UDT] - {} - {} - Sent", pkt.seq_num, self.label);

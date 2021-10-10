@@ -36,18 +36,20 @@ impl ReliableDataTransportRX {
                         pkt.seq_num
                     );
                     println!("[RDT] - {} - RX     - Sending ACK Zero", self.seq_num);
-                    let response = Packet::ack(self.seq_num);
+                    send_response(self, PacketType::Acknowlodge, self.seq_num);
                     self.seq_num = 1;
                     self.next_state = RdtRXState::WaitingOne;
-                    self.udt_layer.maybe_send(&response);
-                } else {
+                }
+                if !pkt.checksum_ok() {
                     println!(
                         "[RDT] - {} - RX     - Received Garbage from Server",
                         pkt.seq_num
                     );
                     println!("[RDT] - {} - RX     - Sending NACK Zero", self.seq_num);
-                    let response = Packet::nack(self.seq_num);
-                    self.udt_layer.maybe_send(&response);
+                    send_response(self, PacketType::NotAcklodge, self.seq_num)
+                }
+                if !pkt.checksum_ok() && pkt.seq_num == 1 {
+                    send_response(self, PacketType::Acknowlodge, 1)
                 }
             }
             RdtRXState::WaitingOne => {
@@ -59,10 +61,9 @@ impl ReliableDataTransportRX {
                         pkt.seq_num
                     );
                     println!("[RDT] - {} - RX     - Sending ACK One", self.seq_num);
-                    let response = Packet::ack(self.seq_num);
                     self.seq_num = 0;
                     self.next_state = RdtRXState::WaitingZero;
-                    self.udt_layer.maybe_send(&response);
+                    send_response(self, PacketType::Acknowlodge, 1);
                 } else {
                     println!(
                         "[RDT] - {} - RX     - Received Garbage from Server",
@@ -79,5 +80,12 @@ impl ReliableDataTransportRX {
     }
     pub fn get_data(&self) -> Vec<u32> {
         self.data_buff.clone()
+    }
+}
+
+fn send_response(rdt_rx: &mut ReliableDataTransportRX, pkt_type: PacketType, seq_num: u32) {
+    match pkt_type {
+        Acknowlodge => rdt_rx.udt_layer.maybe_send(&Packet::ack(seq_num)),
+        NotAcklodge => rdt_rx.udt_layer.maybe_send(&Packet::nack(seq_num)),
     }
 }
