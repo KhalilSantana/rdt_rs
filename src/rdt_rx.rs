@@ -11,16 +11,14 @@ pub struct ReliableDataTransportRX {
 }
 #[derive(Debug, Clone, Copy)]
 pub enum RdtRXState {
-    Waiting,
-    //    ReceiveData,
-    SendAck,
-    SendNack,
+    WaitingZero,
+    WaitingOne,
 }
 impl ReliableDataTransportRX {
     pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>) -> Self {
         let rdt = ReliableDataTransportRX {
-            state: RdtRXState::Waiting,
-            next_state: RdtRXState::Waiting,
+            state: RdtRXState::WaitingZero,
+            next_state: RdtRXState::WaitingZero,
             seq_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx, "RX->TX"),
             data_buff: vec![],
@@ -28,37 +26,55 @@ impl ReliableDataTransportRX {
         rdt
     }
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
-        self.state = self.next_state;
         match self.state {
-            RdtRXState::Waiting => {
+            RdtRXState::WaitingZero => {
                 let pkt = self.udt_layer.receive()?;
-                if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge {
+                if pkt.checksum_ok() && pkt.seq_num == 0 {
                     self.data_buff.push(pkt.pkt_data);
-                    self.next_state = RdtRXState::SendAck;
                     println!(
                         "[RDT] - {} - RX     - Received Server's Payload",
                         pkt.seq_num
                     );
+                    println!("[RDT] - {} - RX     - Sending ACK Zero", self.seq_num);
+                    let response = Packet::ack(self.seq_num);
+                    self.seq_num = 1;
+                    self.next_state = RdtRXState::WaitingOne;
+                    self.udt_layer.maybe_send(&response);
                 } else {
                     println!(
                         "[RDT] - {} - RX     - Received Garbage from Server",
                         pkt.seq_num
                     );
-                    self.next_state = RdtRXState::SendNack;
+                    println!("[RDT] - {} - RX     - Sending NACK Zero", self.seq_num);
+                    let response = Packet::nack(self.seq_num);
+                    self.udt_layer.maybe_send(&response);
                 }
             }
-            RdtRXState::SendAck => {
-                let pkt = Packet::ack(self.seq_num);
-                self.next_state = RdtRXState::Waiting;
-                self.udt_layer.maybe_send(&pkt);
-            }
-            RdtRXState::SendNack => {
-                let pkt = Packet::nack(self.seq_num);
-                self.next_state = RdtRXState::Waiting;
-                println!("[RDT] - {} - RX     - Sending NACK to Server", pkt.seq_num);
-                self.udt_layer.maybe_send(&pkt)
+            RdtRXState::WaitingOne => {
+                let pkt = self.udt_layer.receive()?;
+                if pkt.checksum_ok() && pkt.seq_num == 1 {
+                    self.data_buff.push(pkt.pkt_data);
+                    println!(
+                        "[RDT] - {} - RX     - Received Server's Payload",
+                        pkt.seq_num
+                    );
+                    println!("[RDT] - {} - RX     - Sending ACK One", self.seq_num);
+                    let response = Packet::ack(self.seq_num);
+                    self.seq_num = 0;
+                    self.next_state = RdtRXState::WaitingZero;
+                    self.udt_layer.maybe_send(&response);
+                } else {
+                    println!(
+                        "[RDT] - {} - RX     - Received Garbage from Server",
+                        pkt.seq_num
+                    );
+                    println!("[RDT] - {} - RX     - Sending NACK One", self.seq_num);
+                    let response = Packet::nack(self.seq_num);
+                    self.udt_layer.maybe_send(&response);
+                }
             }
         }
+        self.state = self.next_state;
         return Ok(());
     }
     pub fn get_data(&self) -> Vec<u32> {

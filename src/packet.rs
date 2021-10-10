@@ -9,6 +9,7 @@ pub struct Packet {
 pub enum PacketType {
     Acknowlodge,
     NotAcklodge,
+    Data,
 }
 impl Packet {
     pub fn new(seq_num: u32, pkt_type: PacketType, pkt_data: u32) -> Self {
@@ -42,6 +43,16 @@ impl Packet {
         pkt
     }
 
+    pub fn data(seq_num: u32, pkt_data: u32) -> Self {
+        let mut pkt = Packet {
+            seq_num,
+            pkt_type: PacketType::Data,
+            pkt_data,
+            checksum: 0,
+        };
+        pkt.create_checksum();
+        pkt
+    }
     pub fn create_checksum(&mut self) {
         self.checksum = 42;
     }

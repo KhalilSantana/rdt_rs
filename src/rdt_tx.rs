@@ -9,7 +9,6 @@ pub struct ReliableDataTransportTX {
     state: RdtTXState,
     next_state: RdtTXState,
     seq_num: u32,
-    ack_num: u32,
     udt_layer: UnreliableDataTransport,
     data_buff: Vec<u32>,
     is_done: bool,
@@ -17,16 +16,16 @@ pub struct ReliableDataTransportTX {
 }
 #[derive(Debug, Clone, Copy)]
 pub enum RdtTXState {
-    Waiting,
     SendData,
+    WaitingZero,
+    WaitingOne,
 }
 impl ReliableDataTransportTX {
     pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: Vec<u32>) -> Self {
         let rdt = ReliableDataTransportTX {
             state: RdtTXState::SendData,
-            next_state: RdtTXState::SendData,
+            next_state: RdtTXState::WaitingZero,
             seq_num: 0,
-            ack_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx, "TX->RX"),
             data_buff,
             is_done: false,
@@ -35,16 +34,29 @@ impl ReliableDataTransportTX {
         rdt
     }
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
-        self.state = self.next_state;
         match self.state {
-            RdtTXState::Waiting => {
+            RdtTXState::WaitingZero => {
                 let pkt = self.udt_layer.receive()?;
                 if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge {
+                    if pkt.seq_num == 1 {
+                        println!(
+                            "[RDT] - {} - TX      - Received DUP pkt from Client",
+                            pkt.seq_num
+                        );
+                    }
                     println!("[RDT] - {} - TX     - Received Client's Ack", pkt.seq_num);
                     stdout().flush();
                     self.data_buff.remove(0);
-                    self.seq_num += 1;
-                    self.next_state = RdtTXState::SendData;
+                    self.seq_num = 1;
+                    self.next_state = RdtTXState::WaitingOne;
+                    println!(
+                        "[RDT] - {} - TX     - Sending data to Client - {}",
+                        pkt.seq_num, pkt.pkt_data
+                    );
+                    self.udt_layer.maybe_send(&Packet::data(
+                        self.seq_num,
+                        *self.data_buff.first().unwrap(),
+                    ));
                     if self.data_buff.len() == 0 {
                         println!("[RDT] == Entire data buffer sent, quitting ==");
                         stdout().flush();
@@ -53,7 +65,46 @@ impl ReliableDataTransportTX {
                 } else {
                     println!("[RDT] - {} - TX     - Failed.. retransmit", pkt.seq_num);
                     stdout().flush();
-                    self.next_state = RdtTXState::SendData;
+                    self.udt_layer.maybe_send(&Packet::data(
+                        self.seq_num,
+                        *self.data_buff.first().unwrap(),
+                    ))
+                }
+            }
+            RdtTXState::WaitingOne => {
+                let pkt = self.udt_layer.receive()?;
+                if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge {
+                    if pkt.seq_num == 0 {
+                        println!(
+                            "[RDT] - {} - TX      - Received DUP pkt from Client",
+                            pkt.seq_num
+                        );
+                    }
+                    println!("[RDT] - {} - TX     - Received Client's Ack", pkt.seq_num);
+                    stdout().flush();
+                    self.data_buff.remove(0);
+                    self.seq_num = 0;
+                    self.next_state = RdtTXState::WaitingZero;
+                    println!(
+                        "[RDT] - {} - TX     - Sending data to Client - {}",
+                        pkt.seq_num, pkt.pkt_data
+                    );
+                    self.udt_layer.maybe_send(&Packet::data(
+                        self.seq_num,
+                        *self.data_buff.first().unwrap(),
+                    ));
+                    if self.data_buff.len() == 0 {
+                        println!("[RDT] == Entire data buffer sent, quitting ==");
+                        stdout().flush();
+                        self.is_done = true;
+                    }
+                } else {
+                    println!("[RDT] - {} - TX     - Failed.. retransmit", pkt.seq_num);
+                    stdout().flush();
+                    self.udt_layer.maybe_send(&Packet::data(
+                        self.seq_num,
+                        *self.data_buff.first().unwrap(),
+                    ))
                 }
             }
             RdtTXState::SendData => {
@@ -62,10 +113,14 @@ impl ReliableDataTransportTX {
                     PacketType::Acknowlodge,
                     *self.data_buff.first().unwrap(),
                 );
-                self.next_state = RdtTXState::Waiting;
+                println!(
+                    "[RDT] - {} - TX     - Sending data to Client - {}",
+                    pkt.seq_num, pkt.pkt_data
+                );
                 self.udt_layer.maybe_send(&pkt);
             }
         }
+        self.state = self.next_state;
         return Ok(());
     }
     pub fn is_done(&self) -> bool {
