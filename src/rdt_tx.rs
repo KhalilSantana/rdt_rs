@@ -2,7 +2,7 @@ use crate::packet::*;
 use crate::udt::UnreliableDataTransport;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::Cursor;
-use std::sync::mpsc::{Receiver, RecvError, Sender};
+use std::sync::mpsc::{Receiver, Sender};
 #[derive(Debug)]
 pub struct ReliableDataTransportTX {
     state: RdtTXState,
@@ -25,26 +25,24 @@ impl ReliableDataTransportTX {
             next_state: RdtTXState::SendData,
             seq_num: 0,
             ack_num: 0,
-            udt_layer: UnreliableDataTransport::new(tx, rx),
+            udt_layer: UnreliableDataTransport::new(tx, rx, "TX->RX"),
             data_buff,
             is_done: false,
         };
         rdt
     }
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
-        dbg!(&self);
         self.state = self.next_state;
         match self.state {
             RdtTXState::Waiting => {
                 let pkt = self.udt_layer.receive()?;
                 match (pkt.checksum_ok(), pkt.pkt_type) {
                     (true, PacketType::Acknowlodge) => {
-                        dbg!("[TX] - Got ACK");
                         self.data_buff.remove(0);
                         self.seq_num += 1;
                         self.next_state = RdtTXState::SendData;
                         if self.data_buff.len() == 0 {
-                            println!("Entire data buffer sent, quitting");
+                            println!("[RDT] == Entire data buffer sent, quitting ==");
                             self.is_done = true;
                         }
                     }
@@ -61,7 +59,7 @@ impl ReliableDataTransportTX {
                     *self.data_buff.first().unwrap(),
                 );
                 self.next_state = RdtTXState::Waiting;
-                self.udt_layer.send(&pkt);
+                self.udt_layer.maybe_send(&pkt);
             }
         }
         return Ok(());

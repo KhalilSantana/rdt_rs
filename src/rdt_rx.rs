@@ -24,20 +24,18 @@ impl ReliableDataTransportRX {
             next_state: RdtRXState::Waiting,
             seq_num: 0,
             ack_num: 0,
-            udt_layer: UnreliableDataTransport::new(tx, rx),
+            udt_layer: UnreliableDataTransport::new(tx, rx, "RX->TX"),
             data_buff: vec![],
         };
         rdt
     }
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
-        dbg!(&self);
         self.state = self.next_state;
         match self.state {
             RdtRXState::Waiting => {
                 let pkt = self.udt_layer.receive()?;
                 match (pkt.checksum_ok(), pkt.pkt_type) {
                     (true, PacketType::Acknowlodge) => {
-                        println!("[RX] Got packet data {:}", &pkt.pkt_data);
                         self.data_buff.push(pkt.pkt_data);
                         self.next_state = RdtRXState::SendAck;
                     }
@@ -49,12 +47,12 @@ impl ReliableDataTransportRX {
             RdtRXState::SendAck => {
                 let pkt = Packet::ack(self.seq_num, self.ack_num);
                 self.ack_num += 1;
-                self.udt_layer.send(&pkt);
+                self.udt_layer.maybe_send(&pkt);
                 self.next_state = RdtRXState::Waiting;
             }
             RdtRXState::SendNack => {
                 let pkt = Packet::nack(self.seq_num, self.ack_num);
-                self.udt_layer.send(&pkt)
+                self.udt_layer.maybe_send(&pkt)
             }
         }
         return Ok(());
