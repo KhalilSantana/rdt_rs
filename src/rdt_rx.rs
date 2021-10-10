@@ -6,7 +6,6 @@ pub struct ReliableDataTransportRX {
     state: RdtRXState,
     next_state: RdtRXState,
     seq_num: u32,
-    ack_num: u32,
     udt_layer: UnreliableDataTransport,
     data_buff: Vec<u32>,
 }
@@ -23,7 +22,6 @@ impl ReliableDataTransportRX {
             state: RdtRXState::Waiting,
             next_state: RdtRXState::Waiting,
             seq_num: 0,
-            ack_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx, "RX->TX"),
             data_buff: vec![],
         };
@@ -50,13 +48,12 @@ impl ReliableDataTransportRX {
                 }
             }
             RdtRXState::SendAck => {
-                let pkt = Packet::ack(self.seq_num, self.ack_num);
-                self.ack_num += 1;
+                let pkt = Packet::ack(self.seq_num);
                 self.next_state = RdtRXState::Waiting;
                 self.udt_layer.maybe_send(&pkt);
             }
             RdtRXState::SendNack => {
-                let pkt = Packet::nack(self.seq_num, self.ack_num);
+                let pkt = Packet::nack(self.seq_num);
                 self.next_state = RdtRXState::Waiting;
                 println!("[RDT] - {} - RX     - Sending NACK to Server", pkt.seq_num);
                 self.udt_layer.maybe_send(&pkt)

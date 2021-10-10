@@ -59,7 +59,6 @@ impl ReliableDataTransportTX {
             RdtTXState::SendData => {
                 let pkt = Packet::new(
                     self.seq_num,
-                    self.ack_num,
                     PacketType::Acknowlodge,
                     *self.data_buff.first().unwrap(),
                 );
