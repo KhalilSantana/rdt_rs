@@ -25,9 +25,10 @@ fn main() {
         let mut rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_receiver);
         loop {
             if rdt_rx.next().is_err() {
-                return;
+                break;
             }
         }
+        println!("Client got data {:?}", rdt_rx.get_data());
     });
     t0.join().unwrap();
     t1.join().unwrap();

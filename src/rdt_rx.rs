@@ -64,4 +64,7 @@ impl ReliableDataTransportRX {
         }
         return Ok(());
     }
+    pub fn get_data(&self) -> Vec<u32> {
+        self.data_buff.clone()
+    }
 }
