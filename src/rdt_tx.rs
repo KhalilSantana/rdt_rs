@@ -2,6 +2,7 @@ use crate::packet::*;
 use crate::udt::UnreliableDataTransport;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::Cursor;
+use std::io::{stdout, Write};
 use std::sync::mpsc::{Receiver, Sender};
 #[derive(Debug)]
 pub struct ReliableDataTransportTX {
@@ -12,6 +13,7 @@ pub struct ReliableDataTransportTX {
     udt_layer: UnreliableDataTransport,
     data_buff: Vec<u32>,
     is_done: bool,
+    label: &'static str,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum RdtTXState {
@@ -28,6 +30,7 @@ impl ReliableDataTransportTX {
             udt_layer: UnreliableDataTransport::new(tx, rx, "TX->RX"),
             data_buff,
             is_done: false,
+            label: "TX->RX",
         };
         rdt
     }
@@ -36,19 +39,21 @@ impl ReliableDataTransportTX {
         match self.state {
             RdtTXState::Waiting => {
                 let pkt = self.udt_layer.receive()?;
-                match (pkt.checksum_ok(), pkt.pkt_type) {
-                    (true, PacketType::Acknowlodge) => {
-                        self.data_buff.remove(0);
-                        self.seq_num += 1;
-                        self.next_state = RdtTXState::SendData;
-                        if self.data_buff.len() == 0 {
-                            println!("[RDT] == Entire data buffer sent, quitting ==");
-                            self.is_done = true;
-                        }
+                if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge {
+                    println!("[RDT] - {} - TX     - Received Client's Ack", pkt.seq_num);
+                    stdout().flush();
+                    self.data_buff.remove(0);
+                    self.seq_num += 1;
+                    self.next_state = RdtTXState::SendData;
+                    if self.data_buff.len() == 0 {
+                        println!("[RDT] == Entire data buffer sent, quitting ==");
+                        stdout().flush();
+                        self.is_done = true;
                     }
-                    (_, _) => {
-                        self.next_state = RdtTXState::SendData;
-                    }
+                } else {
+                    println!("[RDT] - {} - TX     - Failed.. retransmit", pkt.seq_num);
+                    stdout().flush();
+                    self.next_state = RdtTXState::SendData;
                 }
             }
             RdtTXState::SendData => {

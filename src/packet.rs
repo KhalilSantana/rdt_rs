@@ -6,7 +6,7 @@ pub struct Packet {
     pub pkt_data: u32,
     pub checksum: u32,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PacketType {
     Acknowlodge,
     NotAcklodge,
