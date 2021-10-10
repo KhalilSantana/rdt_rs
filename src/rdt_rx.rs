@@ -8,6 +8,7 @@ pub struct ReliableDataTransportRX {
     seq_num: u32,
     ack_num: u32,
     udt_layer: UnreliableDataTransport,
+    data_buff: Vec<u32>,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum RdtRXState {
@@ -24,18 +25,21 @@ impl ReliableDataTransportRX {
             seq_num: 0,
             ack_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx),
+            data_buff: vec![],
         };
         rdt
     }
-    pub fn next(&mut self) {
+    pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
         dbg!(&self);
         self.state = self.next_state;
         match self.state {
             RdtRXState::Waiting => {
-                let pkt = self.udt_layer.receive();
+                let pkt = self.udt_layer.receive()?;
                 match (pkt.checksum_ok(), pkt.pkt_type) {
                     (true, PacketType::Acknowlodge) => {
-                        dbg!("[RX] Got packet data {?}", pkt.pkt_data);
+                        println!("[RX] Got packet data {:}", &pkt.pkt_data);
+                        self.data_buff.push(pkt.pkt_data);
+                        self.next_state = RdtRXState::SendAck;
                     }
                     (_, _) => {
                         self.next_state = RdtRXState::SendNack;
@@ -53,5 +57,6 @@ impl ReliableDataTransportRX {
                 self.udt_layer.send(&pkt)
             }
         }
+        return Ok(());
     }
 }

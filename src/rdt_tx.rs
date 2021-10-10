@@ -2,7 +2,7 @@ use crate::packet::*;
 use crate::udt::UnreliableDataTransport;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::Cursor;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, RecvError, Sender};
 #[derive(Debug)]
 pub struct ReliableDataTransportTX {
     state: RdtTXState,
@@ -11,6 +11,7 @@ pub struct ReliableDataTransportTX {
     ack_num: u32,
     udt_layer: UnreliableDataTransport,
     data_buff: Vec<u32>,
+    is_done: bool,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum RdtTXState {
@@ -26,24 +27,25 @@ impl ReliableDataTransportTX {
             ack_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx),
             data_buff,
+            is_done: false,
         };
         rdt
     }
-    pub fn next(&mut self) {
+    pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
         dbg!(&self);
         self.state = self.next_state;
         match self.state {
             RdtTXState::Waiting => {
-                let pkt = self.udt_layer.receive();
+                let pkt = self.udt_layer.receive()?;
                 match (pkt.checksum_ok(), pkt.pkt_type) {
                     (true, PacketType::Acknowlodge) => {
                         dbg!("[TX] - Got ACK");
-                        self.data_buff.pop();
+                        self.data_buff.remove(0);
                         self.seq_num += 1;
                         self.next_state = RdtTXState::SendData;
                         if self.data_buff.len() == 0 {
                             println!("Entire data buffer sent, quitting");
-                            std::process::exit(0);
+                            self.is_done = true;
                         }
                     }
                     (_, _) => {
@@ -62,6 +64,10 @@ impl ReliableDataTransportTX {
                 self.udt_layer.send(&pkt);
             }
         }
+        return Ok(());
+    }
+    pub fn is_done(&self) -> bool {
+        self.is_done
     }
 }
 

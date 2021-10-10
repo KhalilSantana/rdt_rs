@@ -13,15 +13,19 @@ fn main() {
     let (tx_receiver, rx_sender) = channel();
     let t0 = thread::spawn(move || {
         let mut rdt_tx =
-            ReliableDataTransportTX::new(tx_sender, rx_receiver, rdt_tx::split_input_data(data));
-        loop {
-            rdt_tx.next();
+            ReliableDataTransportTX::new(tx_sender, rx_sender, rdt_tx::split_input_data(data));
+        while !rdt_tx.is_done() {
+            if rdt_tx.next().is_err() {
+                return;
+            };
         }
     });
     let t1 = thread::spawn(move || {
-        let mut rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_sender);
+        let mut rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_receiver);
         loop {
-            rdt_rx.next();
+            if rdt_rx.next().is_err() {
+                return;
+            }
         }
     });
     t0.join().unwrap();

@@ -13,13 +13,13 @@ impl UnreliableDataTransport {
         Self { tx, rx }
     }
     pub fn send(&self, pkt: &Packet) {
-        //        dbg!(&pkt);
-        self.tx.send(pkt.clone()).unwrap();
+        dbg!(&pkt);
+        self.tx.send(pkt.clone());
     }
-    pub fn receive(&self) -> Packet {
-        let response = self.rx.recv().unwrap();
+    pub fn receive(&self) -> Result<Packet, std::sync::mpsc::RecvError> {
+        let response = self.rx.recv()?;
         //        dbg!(&response);
-        response
+        Ok(response)
     }
 
     pub fn maybe_send(&self, pkt: &Packet) {
@@ -34,7 +34,7 @@ impl UnreliableDataTransport {
             }
         };
     }
-    pub fn maybe_recieve(&self) -> Packet {
+    pub fn maybe_recieve(&self) -> Result<Packet, std::sync::mpsc::RecvError> {
         self.receive()
     }
 }
