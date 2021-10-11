@@ -10,7 +10,7 @@ pub struct ReliableDataTransportTX {
     next_state: RdtTXState,
     seq_num: u32,
     udt_layer: UnreliableDataTransport,
-    data_buff: Vec<u32>,
+    data_buff: Vec<u8>,
     is_done: bool,
     label: &'static str,
 }
@@ -21,7 +21,7 @@ pub enum RdtTXState {
     WaitingOne,
 }
 impl ReliableDataTransportTX {
-    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: Vec<u32>) -> Self {
+    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: Vec<u8>) -> Self {
         let rdt = ReliableDataTransportTX {
             state: RdtTXState::SendData,
             next_state: RdtTXState::WaitingZero,
@@ -114,11 +114,11 @@ fn send_data(rdt_tx: &mut ReliableDataTransportTX) {
     rdt_tx.udt_layer.maybe_send(&pkt)
 }
 
-pub fn split_input_data(data: &[u8]) -> Vec<u32> {
+pub fn split_input_data(data: &[u8]) -> Vec<u8> {
     let mut rdr = Cursor::new(data);
-    let mut pkt_data: Vec<u32> = Vec::with_capacity(data.len() / 4);
+    let mut pkt_data: Vec<u8> = Vec::with_capacity(data.len() / 4);
     for _i in 0..data.len() / 4 {
-        let d = rdr.read_u32::<LittleEndian>().unwrap();
+        let d = rdr.read_u8().unwrap();
         pkt_data.push(d);
     }
     pkt_data

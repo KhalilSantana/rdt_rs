@@ -2,7 +2,7 @@
 pub struct Packet {
     pub seq_num: u32,
     pub pkt_type: PacketType,
-    pub pkt_data: u32,
+    pub pkt_data: u8,
     pub checksum: u32,
 }
 #[derive(Clone, Debug, PartialEq)]
@@ -12,7 +12,7 @@ pub enum PacketType {
     Data,
 }
 impl Packet {
-    pub fn new(seq_num: u32, pkt_type: PacketType, pkt_data: u32) -> Self {
+    pub fn new(seq_num: u32, pkt_type: PacketType, pkt_data: u8) -> Self {
         let mut tmp = Packet {
             seq_num,
             pkt_type,
@@ -43,7 +43,7 @@ impl Packet {
         pkt
     }
 
-    pub fn data(seq_num: u32, pkt_data: u32) -> Self {
+    pub fn data(seq_num: u32, pkt_data: u8) -> Self {
         let mut pkt = Packet {
             seq_num,
             pkt_type: PacketType::Data,

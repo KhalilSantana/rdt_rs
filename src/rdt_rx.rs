@@ -7,7 +7,7 @@ pub struct ReliableDataTransportRX {
     next_state: RdtRXState,
     seq_num: u32,
     udt_layer: UnreliableDataTransport,
-    data_buff: Vec<u32>,
+    data_buff: Vec<u8>,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum RdtRXState {
@@ -78,7 +78,7 @@ impl ReliableDataTransportRX {
         self.state = self.next_state;
         return Ok(());
     }
-    pub fn get_data(&self) -> Vec<u32> {
+    pub fn get_data(&self) -> Vec<u8> {
         self.data_buff.clone()
     }
 }
