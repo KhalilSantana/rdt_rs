@@ -64,7 +64,8 @@ impl ReliableDataTransportRX {
                     self.seq_num = 0;
                     self.next_state = RdtRXState::WaitingZero;
                     send_response(self, PacketType::Acknowlodge, 1);
-                } else {
+                }
+                if !pkt.checksum_ok() {
                     println!(
                         "[RDT] - {} - RX     - Received Garbage from Server",
                         pkt.seq_num
@@ -72,6 +73,9 @@ impl ReliableDataTransportRX {
                     println!("[RDT] - {} - RX     - Sending NACK One", self.seq_num);
                     let response = Packet::nack(self.seq_num);
                     self.udt_layer.maybe_send(&response);
+                }
+                if pkt.checksum_ok() && pkt.seq_num == 0 {
+                    send_response(self, PacketType::Acknowlodge, 0)
                 }
             }
         }
