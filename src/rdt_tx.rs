@@ -36,14 +36,12 @@ impl ReliableDataTransportTX {
         match self.state {
             RdtTXState::WaitingZero => {
                 let pkt = self.udt_layer.receive()?;
-                if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge {
-                    if pkt.seq_num == 1 {
-                        println!(
-                            "[RDT] - {} - TX      - Received DUP pkt from Client",
-                            pkt.seq_num
-                        );
-                    }
-                    println!("[RDT] - {} - TX     - Received Client's Ack", pkt.seq_num);
+                if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge && pkt.seq_num == 0
+                {
+                    println!(
+                        "[RDT] - {} - TX     - Received Client's Ack Zero",
+                        pkt.seq_num
+                    );
                     stdout().flush();
                     self.data_buff.remove(0);
                     self.seq_num = 1;
@@ -61,14 +59,12 @@ impl ReliableDataTransportTX {
             }
             RdtTXState::WaitingOne => {
                 let pkt = self.udt_layer.receive()?;
-                if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge {
-                    if pkt.seq_num == 0 {
-                        println!(
-                            "[RDT] - {} - TX      - Received DUP pkt from Client",
-                            pkt.seq_num
-                        );
-                    }
-                    println!("[RDT] - {} - TX     - Received Client's Ack", pkt.seq_num);
+                if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge && pkt.seq_num == 1
+                {
+                    println!(
+                        "[RDT] - {} - TX     - Received Client's Ack One",
+                        pkt.seq_num
+                    );
                     stdout().flush();
                     self.data_buff.remove(0);
                     self.seq_num = 0;

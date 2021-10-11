@@ -35,7 +35,6 @@ impl ReliableDataTransportRX {
                         "[RDT] - {} - RX     - Received Server's Payload",
                         pkt.seq_num
                     );
-                    println!("[RDT] - {} - RX     - Sending ACK Zero", self.seq_num);
                     send_response(self, PacketType::Acknowlodge, self.seq_num);
                     self.seq_num = 1;
                     self.next_state = RdtRXState::WaitingOne;
@@ -45,7 +44,6 @@ impl ReliableDataTransportRX {
                         "[RDT] - {} - RX     - Received Garbage from Server",
                         pkt.seq_num
                     );
-                    println!("[RDT] - {} - RX     - Sending NACK Zero", self.seq_num);
                     send_response(self, PacketType::NotAcklodge, self.seq_num)
                 }
                 if pkt.checksum_ok() && pkt.seq_num == 1 {
@@ -53,7 +51,6 @@ impl ReliableDataTransportRX {
                         "[RDT] - {} - RX     - Received DUP from server..",
                         self.seq_num
                     );
-                    println!("[RDT] - {} - RX     - Sending Ack One", 1);
                     send_response(self, PacketType::Acknowlodge, 1)
                 }
             }
@@ -65,7 +62,6 @@ impl ReliableDataTransportRX {
                         "[RDT] - {} - RX     - Received Server's Payload",
                         pkt.seq_num
                     );
-                    println!("[RDT] - {} - RX     - Sending ACK One", self.seq_num);
                     self.seq_num = 0;
                     self.next_state = RdtRXState::WaitingZero;
                     send_response(self, PacketType::Acknowlodge, 1);
@@ -75,7 +71,6 @@ impl ReliableDataTransportRX {
                         "[RDT] - {} - RX     - Received Garbage from Server",
                         pkt.seq_num
                     );
-                    println!("[RDT] - {} - RX     - Sending NACK One", 1);
                     send_response(self, PacketType::NotAcklodge, 1)
                 }
                 if pkt.checksum_ok() && pkt.seq_num == 0 {
@@ -83,7 +78,6 @@ impl ReliableDataTransportRX {
                         "[RDT] - {} - RX     - Received DUP from server..",
                         self.seq_num
                     );
-                    println!("[RDT] - {} - RX     - Sending Ack Zero", 0);
                     send_response(self, PacketType::Acknowlodge, 0)
                 }
             }
@@ -98,8 +92,14 @@ impl ReliableDataTransportRX {
 
 fn send_response(rdt_rx: &mut ReliableDataTransportRX, pkt_type: PacketType, seq_num: u32) {
     match pkt_type {
-        PacketType::Acknowlodge => rdt_rx.udt_layer.maybe_send(&Packet::ack(seq_num)),
-        PacketType::NotAcklodge => rdt_rx.udt_layer.maybe_send(&Packet::nack(seq_num)),
+        PacketType::Acknowlodge => {
+            println!("[RDT] - {} - RX     - Sending Ack {}", seq_num, seq_num);
+            rdt_rx.udt_layer.maybe_send(&Packet::ack(seq_num));
+        }
+        PacketType::NotAcklodge => {
+            println!("[RDT] - {} - RX     - Sending NACK {}", seq_num, seq_num);
+            rdt_rx.udt_layer.maybe_send(&Packet::nack(seq_num));
+        }
         _ => unreachable!("Client should never send other packet types!"),
     }
 }
