@@ -10,11 +10,11 @@ use std::sync::mpsc::channel;
 use std::thread;
 fn main() {
     let data = "Hello World!".as_bytes();
+    println!("{:?}", data);
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
     let t0 = thread::spawn(move || {
-        let mut rdt_tx =
-            ReliableDataTransportTX::new(tx_sender, rx_sender, rdt_tx::split_input_data(data));
+        let mut rdt_tx = ReliableDataTransportTX::new(tx_sender, rx_sender, data.to_vec());
         while !rdt_tx.is_done() {
             if rdt_tx.next().is_err() {
                 return;

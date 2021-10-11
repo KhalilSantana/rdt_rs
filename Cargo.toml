@@ -7,4 +7,3 @@ edition = "2018"
 
 [dependencies]
 rand = "0.8.4"
-byteorder = "1.4.3"

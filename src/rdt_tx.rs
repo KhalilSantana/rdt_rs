@@ -1,6 +1,5 @@
 use crate::packet::*;
 use crate::udt::UnreliableDataTransport;
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::Cursor;
 use std::io::{stdout, Write};
 use std::sync::mpsc::{Receiver, Sender};
@@ -112,14 +111,4 @@ fn send_data(rdt_tx: &mut ReliableDataTransportTX) {
     );
     stdout().flush();
     rdt_tx.udt_layer.maybe_send(&pkt)
-}
-
-pub fn split_input_data(data: &[u8]) -> Vec<u8> {
-    let mut rdr = Cursor::new(data);
-    let mut pkt_data: Vec<u8> = Vec::with_capacity(data.len() / 4);
-    for _i in 0..data.len() / 4 {
-        let d = rdr.read_u8().unwrap();
-        pkt_data.push(d);
-    }
-    pkt_data
 }
