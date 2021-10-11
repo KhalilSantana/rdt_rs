@@ -48,7 +48,12 @@ impl ReliableDataTransportRX {
                     println!("[RDT] - {} - RX     - Sending NACK Zero", self.seq_num);
                     send_response(self, PacketType::NotAcklodge, self.seq_num)
                 }
-                if !pkt.checksum_ok() && pkt.seq_num == 1 {
+                if pkt.checksum_ok() && pkt.seq_num == 1 {
+                    println!(
+                        "[RDT] - {} - RX     - Received DUP from server..",
+                        self.seq_num
+                    );
+                    println!("[RDT] - {} - RX     - Sending Ack One", 1);
                     send_response(self, PacketType::Acknowlodge, 1)
                 }
             }
@@ -70,11 +75,15 @@ impl ReliableDataTransportRX {
                         "[RDT] - {} - RX     - Received Garbage from Server",
                         pkt.seq_num
                     );
-                    println!("[RDT] - {} - RX     - Sending NACK One", self.seq_num);
-                    let response = Packet::nack(self.seq_num);
-                    self.udt_layer.maybe_send(&response);
+                    println!("[RDT] - {} - RX     - Sending NACK One", 1);
+                    send_response(self, PacketType::NotAcklodge, 1)
                 }
                 if pkt.checksum_ok() && pkt.seq_num == 0 {
+                    println!(
+                        "[RDT] - {} - RX     - Received DUP from server..",
+                        self.seq_num
+                    );
+                    println!("[RDT] - {} - RX     - Sending Ack Zero", 0);
                     send_response(self, PacketType::Acknowlodge, 0)
                 }
             }
@@ -89,7 +98,8 @@ impl ReliableDataTransportRX {
 
 fn send_response(rdt_rx: &mut ReliableDataTransportRX, pkt_type: PacketType, seq_num: u32) {
     match pkt_type {
-        Acknowlodge => rdt_rx.udt_layer.maybe_send(&Packet::ack(seq_num)),
-        NotAcklodge => rdt_rx.udt_layer.maybe_send(&Packet::nack(seq_num)),
+        PacketType::Acknowlodge => rdt_rx.udt_layer.maybe_send(&Packet::ack(seq_num)),
+        PacketType::NotAcklodge => rdt_rx.udt_layer.maybe_send(&Packet::nack(seq_num)),
+        _ => unreachable!("Client should never send other packet types!"),
     }
 }
