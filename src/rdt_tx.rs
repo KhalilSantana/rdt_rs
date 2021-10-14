@@ -1,4 +1,5 @@
 use crate::packet::*;
+use crate::payload::*;
 use crate::udt::UnreliableDataTransport;
 use std::io::{stdout, Write};
 use std::sync::mpsc::{Receiver, Sender};
@@ -25,7 +26,7 @@ impl ReliableDataTransportTX {
             next_state: RdtTXState::WaitingZero,
             seq_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx, "TX->RX"),
-            data_buff: crate::packet::split_data(data_buff),
+            data_buff: crate::payload::split_data(data_buff),
             is_done: false,
             label: "TX->RX",
         };
