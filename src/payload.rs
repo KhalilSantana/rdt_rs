@@ -1,7 +1,7 @@
 #[derive(Clone, Copy, Debug)]
 pub struct Payload {
-    content: [u8; 5],
-    padding: u8,
+    pub content: [u8; 5],
+    pub padding: u8,
 }
 
 impl Payload {
@@ -15,7 +15,7 @@ impl Payload {
 impl std::fmt::Display for Payload {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut output: String = "".to_owned();
-        for i in 0..self.padding as usize {
+        for i in 0..(5 - self.padding) as usize {
             output.push_str(&self.content[i].to_string());
         }
         write!(f, "{}", output)
