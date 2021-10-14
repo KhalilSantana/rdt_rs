@@ -71,7 +71,7 @@ impl ReliableDataTransportTX {
                     send_data(self);
                 } else {
                     println!(
-                        "[RDT] - {} - TX     - Failed.. retransmit - {}",
+                        "[RDT] - {} - TX     - Failed.. retransmit last - {}",
                         self.seq_num,
                         self.data_buff.first().unwrap()
                     );
