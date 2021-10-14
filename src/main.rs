@@ -30,11 +30,10 @@ fn main() {
             }
         }
         println!("Client got data {:?}", rdt_rx.get_data());
-        // println!(
-        //     "UTF-8: {}",
-        //     std::str::from_utf8(&rdt_rx.get_data().into_iter().into_iter().flatten())
-        //         .expect("Parse error!")
-        // );
+        println!(
+            "UTF-8: {}",
+            std::str::from_utf8(&rdt_rx.get_data()).expect("Parse error!")
+        );
     });
     t0.join().unwrap();
     t1.join().unwrap();

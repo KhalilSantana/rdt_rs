@@ -85,8 +85,18 @@ impl ReliableDataTransportRX {
         self.state = self.next_state;
         Ok(())
     }
-    pub fn get_data(&self) -> Vec<Payload> {
-        self.data_buff.clone()
+    pub fn get_data(&self) -> Vec<u8> {
+        let mut output: Vec<u8> = Vec::with_capacity(self.data_buff.len());
+        for i in self.data_buff.iter() {
+            for e in i.content.iter() {
+                output.push(*e);
+            }
+        }
+        let padding = self.data_buff.last().unwrap().padding;
+        if padding != 0 {
+            output.truncate(output.len() - padding as usize);
+        }
+        output
     }
 }
 
