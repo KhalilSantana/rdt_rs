@@ -7,7 +7,7 @@ pub struct ReliableDataTransportRX {
     next_state: RdtRXState,
     seq_num: u32,
     udt_layer: UnreliableDataTransport,
-    data_buff: Vec<u8>,
+    data_buff: Vec<Payload>,
 }
 #[derive(Debug, Clone, Copy)]
 pub enum RdtRXState {
@@ -30,7 +30,7 @@ impl ReliableDataTransportRX {
             RdtRXState::WaitingZero => {
                 let pkt = self.udt_layer.receive()?;
                 if pkt.checksum_ok() && pkt.seq_num == 0 {
-                    self.data_buff.push(pkt.pkt_data);
+                    self.data_buff.push(pkt.payload);
                     println!(
                         "[RDT] - {} - RX     - Received Server's Payload",
                         pkt.seq_num
@@ -57,7 +57,7 @@ impl ReliableDataTransportRX {
             RdtRXState::WaitingOne => {
                 let pkt = self.udt_layer.receive()?;
                 if pkt.checksum_ok() && pkt.seq_num == 1 {
-                    self.data_buff.push(pkt.pkt_data);
+                    self.data_buff.push(pkt.payload);
                     println!(
                         "[RDT] - {} - RX     - Received Server's Payload",
                         pkt.seq_num
@@ -85,7 +85,7 @@ impl ReliableDataTransportRX {
         self.state = self.next_state;
         return Ok(());
     }
-    pub fn get_data(&self) -> Vec<u8> {
+    pub fn get_data(&self) -> Vec<Payload> {
         self.data_buff.clone()
     }
 }

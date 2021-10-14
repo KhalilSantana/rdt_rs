@@ -1,6 +1,5 @@
 use crate::packet::*;
 use crate::udt::UnreliableDataTransport;
-use std::io::Cursor;
 use std::io::{stdout, Write};
 use std::sync::mpsc::{Receiver, Sender};
 #[derive(Debug)]
@@ -9,7 +8,7 @@ pub struct ReliableDataTransportTX {
     next_state: RdtTXState,
     seq_num: u32,
     udt_layer: UnreliableDataTransport,
-    data_buff: Vec<u8>,
+    data_buff: Vec<Payload>,
     is_done: bool,
     label: &'static str,
 }
@@ -20,13 +19,13 @@ pub enum RdtTXState {
     WaitingOne,
 }
 impl ReliableDataTransportTX {
-    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: Vec<u8>) -> Self {
+    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: &[u8]) -> Self {
         let rdt = ReliableDataTransportTX {
             state: RdtTXState::SendData,
             next_state: RdtTXState::WaitingZero,
             seq_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx, "TX->RX"),
-            data_buff,
+            data_buff: crate::packet::split_data(data_buff),
             is_done: false,
             label: "TX->RX",
         };
@@ -103,7 +102,7 @@ fn send_data(rdt_tx: &mut ReliableDataTransportTX) {
     let pkt = Packet::data(rdt_tx.seq_num, *rdt_tx.data_buff.first().unwrap());
     println!(
         "[RDT] - {} - TX     - Sending - {}",
-        pkt.seq_num, pkt.pkt_data
+        pkt.seq_num, pkt.payload
     );
     stdout().flush();
     rdt_tx.udt_layer.maybe_send(&pkt)

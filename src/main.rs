@@ -14,7 +14,7 @@ fn main() {
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
     let t0 = thread::spawn(move || {
-        let mut rdt_tx = ReliableDataTransportTX::new(tx_sender, rx_sender, data.to_vec());
+        let mut rdt_tx = ReliableDataTransportTX::new(tx_sender, rx_sender, data);
         while !rdt_tx.is_done() {
             if rdt_tx.next().is_err() {
                 return;
@@ -29,10 +29,11 @@ fn main() {
             }
         }
         println!("Client got data {:?}", rdt_rx.get_data());
-        println!(
-            "UTF-8: {}",
-            std::str::from_utf8(&rdt_rx.get_data()).expect("Parse error!")
-        );
+        // println!(
+        //     "UTF-8: {}",
+        //     std::str::from_utf8(&rdt_rx.get_data().into_iter().into_iter().flatten())
+        //         .expect("Parse error!")
+        // );
     });
     t0.join().unwrap();
     t1.join().unwrap();
