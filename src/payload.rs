@@ -32,9 +32,7 @@ pub fn split_data(data: &[u8]) -> Vec<Payload> {
     // Padding for the last payload
     let remainder = chunks.remainder();
     let mut last_payload = [0; 5];
-    for i in 0..remainder.len() {
-        last_payload[i] = remainder[i];
-    }
+    last_payload[..remainder.len()].clone_from_slice(remainder);
     output.push(Payload {
         content: last_payload,
         padding: (5 - remainder.len()) as u8,

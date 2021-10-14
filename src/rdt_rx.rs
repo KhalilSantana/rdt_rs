@@ -17,14 +17,13 @@ pub enum RdtRXState {
 }
 impl ReliableDataTransportRX {
     pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>) -> Self {
-        let rdt = ReliableDataTransportRX {
+        ReliableDataTransportRX {
             state: RdtRXState::WaitingZero,
             next_state: RdtRXState::WaitingZero,
             seq_num: 0,
             udt_layer: UnreliableDataTransport::new(tx, rx, "RX->TX"),
             data_buff: vec![],
-        };
-        rdt
+        }
     }
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
         match self.state {
@@ -84,7 +83,7 @@ impl ReliableDataTransportRX {
             }
         }
         self.state = self.next_state;
-        return Ok(());
+        Ok(())
     }
     pub fn get_data(&self) -> Vec<Payload> {
         self.data_buff.clone()

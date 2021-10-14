@@ -21,7 +21,7 @@ pub enum RdtTXState {
 }
 impl ReliableDataTransportTX {
     pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: &[u8]) -> Self {
-        let rdt = ReliableDataTransportTX {
+        ReliableDataTransportTX {
             state: RdtTXState::SendData,
             next_state: RdtTXState::WaitingZero,
             seq_num: 0,
@@ -29,8 +29,7 @@ impl ReliableDataTransportTX {
             data_buff: crate::payload::split_data(data_buff),
             is_done: false,
             label: "TX->RX",
-        };
-        rdt
+        }
     }
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
         match self.state {
@@ -83,7 +82,7 @@ impl ReliableDataTransportTX {
             RdtTXState::SendData => send_data(self),
         }
         self.state = self.next_state;
-        return Ok(());
+        Ok(())
     }
     pub fn is_done(&self) -> bool {
         self.is_done
@@ -96,7 +95,7 @@ impl ReliableDataTransportTX {
 }
 
 fn send_data(rdt_tx: &mut ReliableDataTransportTX) {
-    if rdt_tx.data_buff.len() == 0 {
+    if rdt_tx.data_buff.is_empty() {
         rdt_tx.set_done();
         return;
     }
