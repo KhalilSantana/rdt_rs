@@ -11,7 +11,7 @@ use std::sync::mpsc::channel;
 use std::thread;
 fn main() {
     let data = "Hello World!".as_bytes();
-    println!("{:?}", data);
+    println!("Server sending data {:?}", data);
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
     let t0 = thread::spawn(move || {
