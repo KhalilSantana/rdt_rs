@@ -102,7 +102,7 @@ fn send_data(rdt_tx: &mut ReliableDataTransportTX) {
     let pkt = Packet::data(rdt_tx.seq_num, *rdt_tx.data_buff.first().unwrap());
     println!(
         "[RDT] - {} - TX     - Sending - {}",
-        pkt.seq_num, pkt.payload
+        pkt.seq_num, pkt
     );
     stdout().flush();
     rdt_tx.udt_layer.maybe_send(&pkt)

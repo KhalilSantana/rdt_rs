@@ -103,12 +103,14 @@ impl ReliableDataTransportRX {
 fn send_response(rdt_rx: &mut ReliableDataTransportRX, pkt_type: PacketType, seq_num: u32) {
     match pkt_type {
         PacketType::Acknowlodge => {
-            println!("[RDT] - {} - RX     - Sending Ack {}", seq_num, seq_num);
-            rdt_rx.udt_layer.maybe_send(&Packet::ack(seq_num));
+            let packet = &Packet::ack(seq_num);
+            println!("[RDT] - {} - RX     - Sending Ack {}", seq_num, packet);
+            rdt_rx.udt_layer.maybe_send(packet);
         }
         PacketType::NotAcklodge => {
-            println!("[RDT] - {} - RX     - Sending NACK {}", seq_num, seq_num);
-            rdt_rx.udt_layer.maybe_send(&Packet::nack(seq_num));
+            let packet = &Packet::nack(seq_num);
+            println!("[RDT] - {} - RX     - Sending NACK - {}", seq_num, packet);
+            rdt_rx.udt_layer.maybe_send(packet);
         }
         _ => unreachable!("Client should never send other packet types!"),
     }

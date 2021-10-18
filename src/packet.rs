@@ -5,7 +5,7 @@ pub struct Packet {
     pub seq_num: u32,
     pub pkt_type: PacketType,
     pub payload: Payload,
-    pub checksum: u32,
+    pub checksum: u8,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum PacketType {
@@ -22,9 +22,10 @@ impl Packet {
             payload,
             checksum: 0,
         };
-        tmp.create_checksum();
+        tmp.checksum = tmp.create_checksum();
         tmp
     }
+
     pub fn ack(seq_num: u32) -> Self {
         let mut pkt = Packet {
             seq_num,
@@ -32,9 +33,10 @@ impl Packet {
             payload: Payload::new([0; 5]),
             checksum: 0,
         };
-        pkt.create_checksum();
+        pkt.checksum = pkt.create_checksum();
         pkt
     }
+
     pub fn nack(seq_num: u32) -> Self {
         let mut pkt = Packet {
             seq_num,
@@ -42,7 +44,7 @@ impl Packet {
             payload: Payload::new([0; 5]),
             checksum: 0,
         };
-        pkt.create_checksum();
+        pkt.checksum = pkt.create_checksum();
         pkt
     }
 
@@ -53,22 +55,43 @@ impl Packet {
             payload,
             checksum: 0,
         };
-        pkt.create_checksum();
+        pkt.checksum = pkt.create_checksum();
         pkt
     }
-    pub fn create_checksum(&mut self) {
-        self.checksum = 42;
+
+    pub fn create_checksum(&self) -> u8{
+        let mut sum = self.checksum_not_flip();
+        sum = !sum;
+        sum
     }
+
     pub fn checksum_ok(&self) -> bool {
-        match self.checksum {
-            42 => true,
-            _ => false,
-        }
+        let checksum = self.checksum_not_flip();
+        return self.checksum + checksum == 255;
     }
-    // pub fn corrupt_data(&mut self) {
-    //     self.pkt_data = self.pkt_data.reverse_bits();
-    // }
+
     pub fn corrupt_headers(&mut self) {
-        self.checksum = 1337;
+        //self.checksum = 255;
+        self.checksum += 128;
+    }
+
+    fn checksum_not_flip(&self) -> u8 {
+        let mut sum: u8 = 0;
+        let mut overflow: u8 = 0;
+        for element in self.payload.content.iter() {
+            let aux_sum = sum;
+            sum += *element;
+            if sum < aux_sum {
+                overflow += 1;
+            }
+        }
+        sum += overflow;
+        sum
+    }
+}
+
+impl std::fmt::Display for Packet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
