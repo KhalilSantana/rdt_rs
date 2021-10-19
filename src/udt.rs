@@ -29,7 +29,7 @@ impl UnreliableDataTransport {
             //11..=19 => println!("{} - Corrupt data", pkt.seq_num),
             20..=29 => {
                 println!(
-                    "[UDT] - {} - {} - Corrupt Checksum",
+                    "\n[UDT] - SeqNum: {} - {} - Corrupt Checksum",
                     pkt.seq_num, self.label
                 );
                 stdout().flush();
@@ -39,7 +39,7 @@ impl UnreliableDataTransport {
             }
             _ => {
                 self.send(pkt);
-                println!("[UDT] - {} - {} - Sent", pkt.seq_num, self.label);
+                println!("[UDT] - SeqNum: {} - {} - Sent", pkt.seq_num, self.label);
                 stdout().flush();
             }
         };

@@ -12,7 +12,7 @@ use std::thread;
 fn main() {
     let data = "Hello World!".as_bytes();
     //let data = "Hello".as_bytes();
-    println!("Server sending data {:?}", data);
+    println!("\nServer sending data: {:?}", data);
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
     let t0 = thread::spawn(move || {
@@ -30,7 +30,7 @@ fn main() {
                 break;
             }
         }
-        println!("Client got data {:?}", rdt_rx.get_data());
+        println!("\nClient got data: {:?}", rdt_rx.get_data());
         println!(
             "UTF-8: {}",
             std::str::from_utf8(&rdt_rx.get_data()).expect("Parse error!")

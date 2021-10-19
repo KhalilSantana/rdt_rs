@@ -15,13 +15,16 @@ pub enum RdtRXState {
     WaitingZero,
     WaitingOne,
 }
+
+/** Receptor **/
+
 impl ReliableDataTransportRX {
     pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>) -> Self {
         ReliableDataTransportRX {
             state: RdtRXState::WaitingZero,
             next_state: RdtRXState::WaitingZero,
             seq_num: 0,
-            udt_layer: UnreliableDataTransport::new(tx, rx, "RX->TX"),
+            udt_layer: UnreliableDataTransport::new(tx, rx, "RECEIVER    -> TRANSMITTER"),
             data_buff: vec![],
         }
     }
@@ -32,7 +35,7 @@ impl ReliableDataTransportRX {
                 if pkt.checksum_ok() && pkt.seq_num == 0 {
                     self.data_buff.push(pkt.payload);
                     println!(
-                        "[RDT] - {} - RX     - Received Server's Payload",
+                        "[RDT] - SeqNum: {} - RECEIVER    -  Received Server's Payload",
                         pkt.seq_num
                     );
                     send_response(self, PacketType::Acknowlodge, self.seq_num);
@@ -41,14 +44,14 @@ impl ReliableDataTransportRX {
                 }
                 if !pkt.checksum_ok() {
                     println!(
-                        "[RDT] - {} - RX     - Received Garbage from Server",
+                        "[RDT] - SeqNum: {} - RECEIVER    -  Received Garbage from Server",
                         pkt.seq_num
                     );
                     send_response(self, PacketType::NotAcklodge, self.seq_num)
                 }
                 if pkt.checksum_ok() && pkt.seq_num == 1 {
                     println!(
-                        "[RDT] - {} - RX     - Received DUP from server..",
+                        "[RDT] - SeqNum: {} - RECEIVER    -  Received DUP from server..",
                         self.seq_num
                     );
                     send_response(self, PacketType::Acknowlodge, 1)
@@ -59,7 +62,7 @@ impl ReliableDataTransportRX {
                 if pkt.checksum_ok() && pkt.seq_num == 1 {
                     self.data_buff.push(pkt.payload);
                     println!(
-                        "[RDT] - {} - RX     - Received Server's Payload",
+                        "[RDT] - SeqNum: {} - RECEIVER    -  Received Server's Payload",
                         pkt.seq_num
                     );
                     self.seq_num = 0;
@@ -68,14 +71,14 @@ impl ReliableDataTransportRX {
                 }
                 if !pkt.checksum_ok() {
                     println!(
-                        "[RDT] - {} - RX     - Received Garbage from Server",
+                        "[RDT] - SeqNum: {} - RECEIVER    -  Received Garbage from Server",
                         pkt.seq_num
                     );
                     send_response(self, PacketType::NotAcklodge, 1)
                 }
                 if pkt.checksum_ok() && pkt.seq_num == 0 {
                     println!(
-                        "[RDT] - {} - RX     - Received DUP from server..",
+                        "[RDT] - SeqNum: {} - RECEIVER    -  Received DUP from server..",
                         self.seq_num
                     );
                     send_response(self, PacketType::Acknowlodge, 0)
@@ -104,12 +107,13 @@ fn send_response(rdt_rx: &mut ReliableDataTransportRX, pkt_type: PacketType, seq
     match pkt_type {
         PacketType::Acknowlodge => {
             let packet = &Packet::ack(seq_num);
-            println!("[RDT] - {} - RX     - Sending Ack {}", seq_num, packet);
+            println!("[RDT] - SeqNum: {} - RECEIVER    -  Sending Ack {}", seq_num, packet);
             rdt_rx.udt_layer.maybe_send(packet);
+
         }
         PacketType::NotAcklodge => {
             let packet = &Packet::nack(seq_num);
-            println!("[RDT] - {} - RX     - Sending NACK - {}", seq_num, packet);
+            println!("[RDT] - SeqNum: {} - RECEIVER    -  Sending NACK {}", seq_num, packet);
             rdt_rx.udt_layer.maybe_send(packet);
         }
         _ => unreachable!("Client should never send other packet types!"),

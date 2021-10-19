@@ -19,16 +19,18 @@ pub enum RdtTXState {
     WaitingZero,
     WaitingOne,
 }
+
+/** Transmissor **/
 impl ReliableDataTransportTX {
     pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: &[u8]) -> Self {
         ReliableDataTransportTX {
             state: RdtTXState::SendData,
             next_state: RdtTXState::WaitingZero,
             seq_num: 0,
-            udt_layer: UnreliableDataTransport::new(tx, rx, "TX->RX"),
+            udt_layer: UnreliableDataTransport::new(tx, rx, "TRANSMITTER -> RECEIVER"),
             data_buff: crate::payload::split_data(data_buff),
             is_done: false,
-            label: "TX->RX",
+            label: "TRANSMITTER -> RECEIVER",
         }
     }
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvError> {
@@ -38,7 +40,7 @@ impl ReliableDataTransportTX {
                 if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge && pkt.seq_num == 0
                 {
                     println!(
-                        "[RDT] - {} - TX     - Received Client's Ack Zero",
+                        "[RDT] - SeqNum: {} - TRANSMITTER -  Received Client's Ack Zero",
                         pkt.seq_num
                     );
                     stdout().flush();
@@ -48,7 +50,7 @@ impl ReliableDataTransportTX {
                     send_data(self);
                 } else {
                     println!(
-                        "[RDT] - {} - TX     - Failed.. retransmiting last - {}",
+                        "[RDT] - SeqNum: {} - TRANSMITTER -  Failed.. retransmiting last - {}",
                         self.seq_num,
                         self.data_buff.first().unwrap()
                     );
@@ -61,7 +63,7 @@ impl ReliableDataTransportTX {
                 if pkt.checksum_ok() && pkt.pkt_type == PacketType::Acknowlodge && pkt.seq_num == 1
                 {
                     println!(
-                        "[RDT] - {} - TX     - Received Client's Ack One",
+                        "[RDT] - SeqNum: {} - TRANSMITTER -  Received Client's Ack One",
                         pkt.seq_num
                     );
                     stdout().flush();
@@ -71,7 +73,7 @@ impl ReliableDataTransportTX {
                     send_data(self);
                 } else {
                     println!(
-                        "[RDT] - {} - TX     - Failed.. retransmit last - {}",
+                        "[RDT] - SeqNum: {} - TRANSMITTER -  Failed.. retransmit last - {}",
                         self.seq_num,
                         self.data_buff.first().unwrap()
                     );
@@ -88,7 +90,7 @@ impl ReliableDataTransportTX {
         self.is_done
     }
     fn set_done(&mut self) {
-        println!("[RDT] == Entire data buffer sent, quitting ==");
+        println!("\n[RDT] == Entire data buffer sent, quitting ==");
         stdout().flush();
         self.is_done = true;
     }
@@ -101,7 +103,7 @@ fn send_data(rdt_tx: &mut ReliableDataTransportTX) {
     }
     let pkt = Packet::data(rdt_tx.seq_num, *rdt_tx.data_buff.first().unwrap());
     println!(
-        "[RDT] - {} - TX     - Sending - {}",
+        "\n[RDT] - SeqNum: {} - TRANSMITTER -  Sending - {}",
         pkt.seq_num, pkt
     );
     stdout().flush();
