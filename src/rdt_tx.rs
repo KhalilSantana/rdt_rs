@@ -22,12 +22,12 @@ pub enum RdtTXState {
 
 /** Transmissor **/
 impl ReliableDataTransportTX {
-    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: &[u8]) -> Self {
+    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, data_buff: &[u8], rng_seed: u64) -> Self {
         ReliableDataTransportTX {
             state: RdtTXState::SendData,
             next_state: RdtTXState::WaitingZero,
             seq_num: 0,
-            udt_layer: UnreliableDataTransport::new(tx, rx, "TRANSMITTER -> RECEIVER"),
+            udt_layer: UnreliableDataTransport::new(tx, rx, "TRANSMITTER -> RECEIVER", rng_seed),
             data_buff: crate::payload::split_data(data_buff),
             is_done: false,
             label: "TRANSMITTER -> RECEIVER",

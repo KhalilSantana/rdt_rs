@@ -16,7 +16,7 @@ fn main() {
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
     let t0 = thread::spawn(move || {
-        let mut rdt_tx = ReliableDataTransportTX::new(tx_sender, rx_sender, data);
+        let mut rdt_tx = ReliableDataTransportTX::new(tx_sender, rx_sender, data, 10);
         while !rdt_tx.is_done() {
             if rdt_tx.next().is_err() {
                 return;
@@ -24,7 +24,7 @@ fn main() {
         }
     });
     let t1 = thread::spawn(move || {
-        let mut rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_receiver);
+        let mut rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_receiver, 42);
         loop {
             if rdt_rx.next().is_err() {
                 break;

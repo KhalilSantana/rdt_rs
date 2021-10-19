@@ -66,13 +66,12 @@ impl Packet {
     }
 
     pub fn checksum_ok(&self) -> bool {
-        let checksum = self.checksum_not_flip();
-        self.checksum + checksum == 255
+        let result = self.checksum.overflowing_add(self.checksum_not_flip()).0;
+        result == 255
     }
 
     pub fn corrupt_headers(&mut self) {
-        //self.checksum = 255;
-        self.checksum.overflowing_add(128);
+        self.checksum = self.checksum.overflowing_add(128).0;
     }
 
     fn checksum_not_flip(&self) -> u8 {
@@ -96,4 +95,3 @@ impl std::fmt::Display for Packet {
         write!(f, "{:?}", self)
     }
 }
-

@@ -19,12 +19,12 @@ pub enum RdtRXState {
 /** Receptor **/
 
 impl ReliableDataTransportRX {
-    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>) -> Self {
+    pub fn new(tx: Sender<Packet>, rx: Receiver<Packet>, rng_seed: u64) -> Self {
         ReliableDataTransportRX {
             state: RdtRXState::WaitingZero,
             next_state: RdtRXState::WaitingZero,
             seq_num: 0,
-            udt_layer: UnreliableDataTransport::new(tx, rx, "RECEIVER    -> TRANSMITTER"),
+            udt_layer: UnreliableDataTransport::new(tx, rx, "RECEIVER    -> TRANSMITTER", rng_seed),
             data_buff: vec![],
         }
     }
@@ -107,13 +107,18 @@ fn send_response(rdt_rx: &mut ReliableDataTransportRX, pkt_type: PacketType, seq
     match pkt_type {
         PacketType::Acknowlodge => {
             let packet = &Packet::ack(seq_num);
-            println!("[RDT] - SeqNum: {} - RECEIVER    -  Sending Ack {}", seq_num, packet);
+            println!(
+                "[RDT] - SeqNum: {} - RECEIVER    -  Sending Ack {}",
+                seq_num, packet
+            );
             rdt_rx.udt_layer.maybe_send(packet);
-
         }
         PacketType::NotAcklodge => {
             let packet = &Packet::nack(seq_num);
-            println!("[RDT] - SeqNum: {} - RECEIVER    -  Sending NACK {}", seq_num, packet);
+            println!(
+                "[RDT] - SeqNum: {} - RECEIVER    -  Sending NACK {}",
+                seq_num, packet
+            );
             rdt_rx.udt_layer.maybe_send(packet);
         }
         _ => unreachable!("Client should never send other packet types!"),
