@@ -27,7 +27,7 @@ impl UnreliableDataTransport {
         let _ = match rand {
             //0..=10 => println!("{} - Loss", pkt.seq_num),
             //11..=19 => println!("{} - Corrupt data", pkt.seq_num),
-            20..=29 => {
+            00..=29 => {
                 println!(
                     "\n[UDT] - SeqNum: {} - {} - Corrupt Checksum",
                     pkt.seq_num, self.label

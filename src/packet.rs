@@ -59,7 +59,7 @@ impl Packet {
         pkt
     }
 
-    pub fn create_checksum(&self) -> u8{
+    pub fn create_checksum(&self) -> u8 {
         let mut sum = self.checksum_not_flip();
         sum = !sum;
         sum
@@ -67,23 +67,24 @@ impl Packet {
 
     pub fn checksum_ok(&self) -> bool {
         let checksum = self.checksum_not_flip();
-        return self.checksum + checksum == 255;
+        self.checksum + checksum == 255
     }
 
     pub fn corrupt_headers(&mut self) {
         //self.checksum = 255;
-        self.checksum += 128;
+        self.checksum.overflowing_add(128);
     }
 
     fn checksum_not_flip(&self) -> u8 {
         let mut sum: u8 = 0;
         let mut overflow: u8 = 0;
         for element in self.payload.content.iter() {
-            let aux_sum = sum;
-            sum += *element;
-            if sum < aux_sum {
+            // This returns a tuple of (OF_sum, sum_OF_flag)
+            let tuple = sum.overflowing_add(*element);
+            if tuple.1 {
                 overflow += 1;
             }
+            sum = tuple.0;
         }
         sum += overflow;
         sum
@@ -95,3 +96,4 @@ impl std::fmt::Display for Packet {
         write!(f, "{:?}", self)
     }
 }
+
