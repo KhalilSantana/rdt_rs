@@ -7,50 +7,53 @@ use std::io::{stdout, Write};
 
 #[derive(Debug)]
 pub struct UnreliableDataTransport {
-    tx: Sender<Packet>,
-    rx: Receiver<Packet>,
+    transmitter: Sender<Packet>,
+    receiver: Receiver<Packet>,
     label: &'static str,
     rng: rand_chacha::ChaCha8Rng,
 }
+
 impl UnreliableDataTransport {
     pub fn new(
-        tx: Sender<Packet>,
-        rx: Receiver<Packet>,
+        transmitter: Sender<Packet>,
+        receiver: Receiver<Packet>,
         label: &'static str,
         rng_seed: u64,
     ) -> Self {
         Self {
-            tx,
-            rx,
+            transmitter,
+            receiver,
             label,
             rng: ChaCha8Rng::seed_from_u64(rng_seed),
         }
     }
+
     pub fn send(&self, pkt: &Packet) {
-        self.tx.send(pkt.clone());
+        self.transmitter.send(pkt.clone());
     }
+
     pub fn receive(&self) -> Result<Packet, std::sync::mpsc::RecvError> {
-        let response = self.rx.recv()?;
+        let response = self.receiver.recv()?;
         Ok(response)
     }
 
-    pub fn maybe_send(&mut self, pkt: &Packet) {
+    pub fn maybe_send(&mut self, packet: &Packet) {
         let _ = match self.rng.gen_range(0..100) {
             //0..=10 => println!("{} - Loss", pkt.seq_num),
             //11..=19 => println!("{} - Corrupt data", pkt.seq_num),
             20..=29 => {
                 println!(
                     "\n[UDT] - SeqNum: {} - {} - Corrupt Checksum",
-                    pkt.seq_num, self.label
+                    packet.sequence_number, self.label
                 );
                 stdout().flush();
-                let mut pkt2 = pkt.clone();
-                pkt2.corrupt_headers();
-                self.send(&pkt2);
+                let mut packet2 = packet.clone();
+                packet2.corrupt_headers();
+                self.send(&packet2);
             }
             _ => {
-                self.send(pkt);
-                println!("[UDT] - SeqNum: {} - {} - Sent", pkt.seq_num, self.label);
+                self.send(packet);
+                println!("[UDT] - SeqNum: {} - {} - Sent", packet.sequence_number, self.label);
                 stdout().flush();
             }
         };

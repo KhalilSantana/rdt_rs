@@ -1,12 +1,13 @@
 #![allow(unused_must_use, dead_code)]
 mod packet;
 mod payload;
-mod rdt_rx;
-mod rdt_tx;
+mod rdt_receiver;
+mod rdt_transmitter;
 mod udt;
+mod enums;
 
-use crate::rdt_rx::ReliableDataTransportRX;
-use crate::rdt_tx::ReliableDataTransportTX;
+use crate::rdt_receiver::ReliableDataTransportReceiver;
+use crate::rdt_transmitter::ReliableDataTransportTransmitter;
 use std::sync::mpsc::channel;
 use std::thread;
 fn main() {
@@ -16,7 +17,7 @@ fn main() {
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
     let t0 = thread::spawn(move || {
-        let mut rdt_tx = ReliableDataTransportTX::new(tx_sender, rx_sender, data, 10);
+        let mut rdt_tx = ReliableDataTransportTransmitter::new(tx_sender, rx_sender, data, 10);
         while !rdt_tx.is_done() {
             if rdt_tx.next().is_err() {
                 return;
@@ -24,16 +25,16 @@ fn main() {
         }
     });
     let t1 = thread::spawn(move || {
-        let mut rdt_rx = ReliableDataTransportRX::new(tx_receiver, rx_receiver, 42);
+        let mut rdt_receiver = ReliableDataTransportReceiver::new(tx_receiver, rx_receiver, 42);
         loop {
-            if rdt_rx.next().is_err() {
+            if rdt_receiver.next().is_err() {
                 break;
             }
         }
-        println!("\nClient got data: {:?}", rdt_rx.get_data());
+        println!("\nClient got data: {:?}", rdt_receiver.get_data());
         println!(
             "UTF-8: {}",
-            std::str::from_utf8(&rdt_rx.get_data()).expect("Parse error!")
+            std::str::from_utf8(&rdt_receiver.get_data()).expect("Parse error!")
         );
     });
     t0.join().unwrap();

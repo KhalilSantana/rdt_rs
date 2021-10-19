@@ -2,8 +2,8 @@ use crate::payload::*;
 
 #[derive(Debug, Clone)]
 pub struct Packet {
-    pub seq_num: u32,
-    pub pkt_type: PacketType,
+    pub sequence_number: u32,
+    pub packet_type: PacketType,
     pub payload: Payload,
     pub checksum: u8,
 }
@@ -15,48 +15,48 @@ pub enum PacketType {
 }
 
 impl Packet {
-    pub fn new(seq_num: u32, pkt_type: PacketType, payload: Payload) -> Self {
-        let mut tmp = Packet {
-            seq_num,
-            pkt_type,
+    pub fn new(sequence_number: u32, packet_type: PacketType, payload: Payload) -> Self {
+        let mut variable_temporary = Packet {
+            sequence_number,
+            packet_type,
             payload,
             checksum: 0,
         };
-        tmp.checksum = tmp.create_checksum();
-        tmp
+        variable_temporary.checksum = variable_temporary.create_checksum();
+        variable_temporary
     }
 
-    pub fn ack(seq_num: u32) -> Self {
-        let mut pkt = Packet {
-            seq_num,
-            pkt_type: PacketType::Acknowlodge,
+    pub fn ack(sequence_number: u32) -> Self {
+        let mut packet = Packet {
+            sequence_number,
+            packet_type: PacketType::Acknowlodge,
             payload: Payload::new([0; 5]),
             checksum: 0,
         };
-        pkt.checksum = pkt.create_checksum();
-        pkt
+        packet.checksum = packet.create_checksum();
+        packet
     }
 
-    pub fn nack(seq_num: u32) -> Self {
-        let mut pkt = Packet {
-            seq_num,
-            pkt_type: PacketType::NotAcklodge,
+    pub fn nack(sequence_number: u32) -> Self {
+        let mut packet = Packet {
+            sequence_number,
+            packet_type: PacketType::NotAcklodge,
             payload: Payload::new([0; 5]),
             checksum: 0,
         };
-        pkt.checksum = pkt.create_checksum();
-        pkt
+        packet.checksum = packet.create_checksum();
+        packet
     }
 
-    pub fn data(seq_num: u32, payload: Payload) -> Self {
-        let mut pkt = Packet {
-            seq_num,
-            pkt_type: PacketType::Data,
+    pub fn data(sequence_number: u32, payload: Payload) -> Self {
+        let mut packet = Packet {
+            sequence_number,
+            packet_type: PacketType::Data,
             payload,
             checksum: 0,
         };
-        pkt.checksum = pkt.create_checksum();
-        pkt
+        packet.checksum = packet.create_checksum();
+        packet
     }
 
     pub fn create_checksum(&self) -> u8 {
