@@ -75,7 +75,6 @@ impl ReliableDataTransportTransmitter {
             self.next_state = next_state;
 
             //TODO: remove o time out
-
         } else {
             log_message_transmitter_failed(self.sequence_number, data_buff);
             stdout().flush();
@@ -83,10 +82,11 @@ impl ReliableDataTransportTransmitter {
 
         send_data(self, data_buff);
 
-        // adiciona o time out
+        //TODO: adiciona o time out
         let (tx, rx) = channel();
         Timer::new().schedule_with_delay(chrono::Duration::nanoseconds(1),move || {
             tx.send(()).unwrap();
+            //TODO: reenvia o pacote
             send_data(self, data_buff);
             println!("\nTIME OUT!!!!!!!!!!!!!\n");
         });

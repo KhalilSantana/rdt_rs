@@ -39,6 +39,9 @@ impl UnreliableDataTransport {
 
     pub fn maybe_send(&mut self, packet: &Packet) {
         let _ = match self.rng.gen_range(0..100) {
+            //TODO: simular atraso de pacote
+           // thread::sleep(time::Duration::from_millis(10));
+
             //0..=10 => println!("{} - Loss", pkt.seq_num),
             //11..=19 => println!("{} - Corrupt data", pkt.seq_num),
             20..=29 => {
