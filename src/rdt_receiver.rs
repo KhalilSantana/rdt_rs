@@ -39,7 +39,7 @@ impl ReliableDataTransportReceiver {
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvTimeoutError> {
         match self.state {
             RdtReceiverState::WaitingZero => {
-                let packet = self.udt_layer.maybe_receive()?;
+                let packet = self.udt_layer.receive()?;
                 if packet.checksum_ok() && packet.sequence_number == 0 {
                     self.data_buff.push(packet.payload);
                     log_message_receiver_payload(packet.sequence_number);
@@ -76,7 +76,7 @@ impl ReliableDataTransportReceiver {
             }
 
             RdtReceiverState::WaitingOne => {
-                let packet = self.udt_layer.maybe_receive()?;
+                let packet = self.udt_layer.receive()?;
                 if packet.checksum_ok() && packet.sequence_number == 1 {
                     self.data_buff.push(packet.payload);
                     log_message_receiver_payload(packet.sequence_number);

@@ -58,7 +58,7 @@ impl ReliableDataTransportTransmitter {
                 let maybe_packet = self.udt_layer.maybe_receive();
                 if maybe_packet.is_err() {
                     log_message_transmitter_timeout(self.sequence_number);
-                    self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 0, None);
+                    self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 1, None);
                     return Ok(());
                 }
                 let packet = maybe_packet.unwrap();
@@ -99,6 +99,7 @@ impl ReliableDataTransportTransmitter {
                 }
                 self.next_state = next_state;
                 self.received_data = true;
+                return;
             } else {
                 log_message_transmitter_failed(self.sequence_number, data_buff);
                 stdout().flush();

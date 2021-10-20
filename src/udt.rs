@@ -49,7 +49,7 @@ impl UnreliableDataTransport {
             0..=10 => log_message_udt_loss(packet.sequence_number, self.label),
 
             11..=19 => {
-                let delay = self.rng.gen_range(200..750);
+                let delay = self.rng.gen_range(490..750);
                 std::thread::sleep(Duration::from_millis(delay));
                 log_message_udt_delay(packet.sequence_number, self.label, &delay);
                 self.send(packet);
