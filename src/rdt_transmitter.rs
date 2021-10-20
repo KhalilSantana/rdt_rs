@@ -98,27 +98,13 @@ impl ReliableDataTransportTransmitter {
                     self.sequence_number = 0;
                 }
                 self.next_state = next_state;
-
-                //TODO: remove o time out
+                self.received_data = true;
             } else {
                 log_message_transmitter_failed(self.sequence_number, data_buff);
                 stdout().flush();
             }
         }
-
         send_data(self, data_buff);
-
-        // //TODO: adiciona o time out
-        // let (tx, rx) = channel();
-        // Timer::new().schedule_with_delay(chrono::Duration::nanoseconds(1),move || {
-        //     tx.send(()).unwrap();
-        //     //TODO: reenvia o pacote
-        //     send_data(self, data_buff);
-        //     println!("\nTIME OUT!!!!!!!!!!!!!\n");
-        // });
-        // rx.recv().unwrap();
-
-        self.received_data = true;
     }
 }
 
