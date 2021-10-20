@@ -44,7 +44,18 @@ impl ReliableDataTransportTransmitter {
         self.received_data = false;
         match self.state {
             RdtTransmitterState::WaitingZero => {
-                let packet = self.udt_layer.maybe_receive()?;
+                let maybe_packet = self.udt_layer.maybe_receive();
+                if maybe_packet.is_err() {
+                    log_message_transmitter_timeout(self.sequence_number);
+                    self.generic_waiting(
+                        data_buff,
+                        RdtTransmitterState::WaitingZero,
+                        0,
+                        Packet::data(255, [0; 5]).corrupt_headers(),
+                    );
+                    return Ok(());
+                }
+                let packet = maybe_packet.unwrap();
 
                 self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 0, packet)
             }
