@@ -2,8 +2,9 @@ use crate::packet::*;
 use crate::payload::*;
 use crate::udt::UnreliableDataTransport;
 use std::io::{stdout, Write};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use crate::enums::messages_transmitter::messages_transmitter::*;
+use timer::Timer;
 
 #[derive(Debug)]
 pub struct ReliableDataTransportTransmitter {
@@ -73,12 +74,24 @@ impl ReliableDataTransportTransmitter {
             }
             self.next_state = next_state;
 
+            //TODO: remove o time out
+
         } else {
             log_message_transmitter_failed(self.sequence_number, data_buff);
             stdout().flush();
         }
 
         send_data(self, data_buff);
+
+        // adiciona o time out
+        let (tx, rx) = channel();
+        Timer::new().schedule_with_delay(chrono::Duration::nanoseconds(1),move || {
+            tx.send(()).unwrap();
+            send_data(self, data_buff);
+            println!("\nTIME OUT!!!!!!!!!!!!!\n");
+        });
+        rx.recv().unwrap();
+
         self.received_data = true;
     }
 }
