@@ -1,9 +1,9 @@
+use crate::enums::messages_transmitter::messages_transmitter::*;
 use crate::packet::*;
 use crate::payload::*;
 use crate::udt::UnreliableDataTransport;
 use std::io::{stdout, Write};
 use std::sync::mpsc::{Receiver, Sender};
-use crate::enums::messages_transmitter::messages_transmitter::*;
 
 #[derive(Debug)]
 pub struct ReliableDataTransportTransmitter {
@@ -24,13 +24,17 @@ pub enum RdtTransmitterState {
 
 /** Transmissor **/
 impl ReliableDataTransportTransmitter {
-
     pub fn new(transmitter: Sender<Packet>, receiver: Receiver<Packet>, rng_seed: u64) -> Self {
         ReliableDataTransportTransmitter {
             state: RdtTransmitterState::SendData,
             next_state: RdtTransmitterState::WaitingZero,
             sequence_number: 0,
-            udt_layer: UnreliableDataTransport::new(transmitter, receiver, "TRANSMITTER -> RECEIVER", rng_seed),
+            udt_layer: UnreliableDataTransport::new(
+                transmitter,
+                receiver,
+                "TRANSMITTER -> RECEIVER",
+                rng_seed,
+            ),
             received_data: false,
             label: "TRANSMITTER -> RECEIVER",
         }
@@ -60,15 +64,23 @@ impl ReliableDataTransportTransmitter {
         self.received_data
     }
 
-    fn generic_waiting(&mut self, data_buff: Payload, next_state: RdtTransmitterState, expected_sequence_number: u32, packet: Packet) {
-
-        if packet.checksum_ok() && packet.packet_type == PacketType::Acknowlodge && packet.sequence_number == expected_sequence_number {
+    fn generic_waiting(
+        &mut self,
+        data_buff: Payload,
+        next_state: RdtTransmitterState,
+        expected_sequence_number: u32,
+        packet: Packet,
+    ) {
+        if packet.checksum_ok()
+            && packet.packet_type == PacketType::Acknowlodge
+            && packet.sequence_number == expected_sequence_number
+        {
             log_message_transmitter_received_ack(packet.sequence_number as usize);
             stdout().flush();
 
             if packet.sequence_number == 0 {
                 self.sequence_number = 1;
-            }else {
+            } else {
                 self.sequence_number = 0;
             }
             self.next_state = next_state;

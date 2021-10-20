@@ -1,10 +1,10 @@
 #![allow(unused_must_use, dead_code)]
+mod enums;
 mod packet;
 mod payload;
 mod rdt_receiver;
 mod rdt_transmitter;
 mod udt;
-mod enums;
 
 use crate::rdt_receiver::ReliableDataTransportReceiver;
 use crate::rdt_transmitter::ReliableDataTransportTransmitter;
@@ -19,7 +19,7 @@ fn main() {
     let (tx_sender, rx_receiver) = channel();
     let (tx_receiver, rx_sender) = channel();
     /* Thread Alice */
-    let thread_sender= thread::spawn(move || {
+    let thread_sender = thread::spawn(move || {
         let mut rdt_transmitter = ReliableDataTransportTransmitter::new(tx_sender, rx_sender, 10);
 
         let mut buffed_data = crate::payload::split_data(data);
@@ -36,7 +36,7 @@ fn main() {
         println!("\n[RDT] == Entire data buffer sent, quitting ==");
     });
     /* Thread Bob */
-    let thread_receiver= thread::spawn(move || {
+    let thread_receiver = thread::spawn(move || {
         let mut rdt_receiver = ReliableDataTransportReceiver::new(tx_receiver, rx_receiver, 42);
         loop {
             if rdt_receiver.next().is_err() {

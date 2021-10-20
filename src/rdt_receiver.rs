@@ -1,8 +1,8 @@
+use crate::enums::messages_receiver::messages_receiver::*;
 use crate::packet::*;
 use crate::payload::*;
 use crate::udt::UnreliableDataTransport;
 use std::sync::mpsc::{Receiver, Sender};
-use crate::enums::messages_receiver::messages_receiver::*;
 
 #[derive(Debug)]
 pub struct ReliableDataTransportReceiver {
@@ -26,7 +26,12 @@ impl ReliableDataTransportReceiver {
             state: RdtReceiverState::WaitingZero,
             next_state: RdtReceiverState::WaitingZero,
             sequence_number: 0,
-            udt_layer: UnreliableDataTransport::new(transmitter, receiver, "RECEIVER    -> TRANSMITTER", rng_seed),
+            udt_layer: UnreliableDataTransport::new(
+                transmitter,
+                receiver,
+                "RECEIVER    -> TRANSMITTER",
+                rng_seed,
+            ),
             data_buff: vec![],
         }
     }
@@ -34,13 +39,23 @@ impl ReliableDataTransportReceiver {
     pub fn next(&mut self) -> Result<(), std::sync::mpsc::RecvTimeoutError> {
         match self.state {
             RdtReceiverState::WaitingZero => {
-                let packet = self.udt_layer.maybe_receive()?;
-
+                let maybe_packet = self.udt_layer.maybe_receive();
+                if maybe_packet.is_err() {
+                    log_message_receiver_timeout(self.sequence_number);
+                    send_response(self, PacketType::Acknowlodge, self.sequence_number, 1);
+                    return Ok(());
+                }
+                let packet = maybe_packet.unwrap();
                 if packet.checksum_ok() && packet.sequence_number == 0 {
                     self.data_buff.push(packet.payload);
                     log_message_receiver_payload(packet.sequence_number);
 
-                    send_response(self, PacketType::Acknowlodge, self.sequence_number, self.sequence_number);
+                    send_response(
+                        self,
+                        PacketType::Acknowlodge,
+                        self.sequence_number,
+                        self.sequence_number,
+                    );
 
                     self.sequence_number = 1;
                     self.next_state = RdtReceiverState::WaitingOne;
@@ -52,7 +67,12 @@ impl ReliableDataTransportReceiver {
                     if self.sequence_number == 0 {
                         nack_number = 1;
                     }
-                    send_response(self, PacketType::NotAcklodge, self.sequence_number, nack_number)
+                    send_response(
+                        self,
+                        PacketType::NotAcklodge,
+                        self.sequence_number,
+                        nack_number,
+                    )
                 }
 
                 if packet.checksum_ok() && packet.sequence_number == 1 {
@@ -62,15 +82,20 @@ impl ReliableDataTransportReceiver {
             }
 
             RdtReceiverState::WaitingOne => {
-                let packet = self.udt_layer.maybe_receive()?;
-
+                let maybe_packet = self.udt_layer.maybe_receive();
+                if maybe_packet.is_err() {
+                    log_message_receiver_timeout(self.sequence_number);
+                    send_response(self, PacketType::Acknowlodge, self.sequence_number, 1);
+                    return Ok(());
+                }
+                let packet = maybe_packet.unwrap();
                 if packet.checksum_ok() && packet.sequence_number == 1 {
                     self.data_buff.push(packet.payload);
                     log_message_receiver_payload(packet.sequence_number);
 
                     self.sequence_number = 0;
                     self.next_state = RdtReceiverState::WaitingZero;
-                    send_response(self, PacketType::Acknowlodge, 1,self.sequence_number);
+                    send_response(self, PacketType::Acknowlodge, 1, self.sequence_number);
                 }
 
                 if !packet.checksum_ok() {
@@ -100,10 +125,14 @@ impl ReliableDataTransportReceiver {
         }
         output
     }
-
 }
 
-fn send_response(rdt_receiver: &mut ReliableDataTransportReceiver, packet_type: PacketType, sequence_number: u32, nack_number: u32) {
+fn send_response(
+    rdt_receiver: &mut ReliableDataTransportReceiver,
+    packet_type: PacketType,
+    sequence_number: u32,
+    nack_number: u32,
+) {
     match packet_type {
         PacketType::Acknowlodge => {
             let packet = &Packet::ack(sequence_number);

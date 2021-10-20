@@ -45,13 +45,19 @@ impl UnreliableDataTransport {
 
     pub fn maybe_send(&mut self, packet: &Packet) {
         let _ = match self.rng.gen_range(0..100) {
-            0..=10 => println!("[UDT] - SeqNum: {} - {} - Loss", packet.sequence_number, self.label),
+            0..=10 => println!(
+                "[UDT] - SeqNum: {} - {} - Loss",
+                packet.sequence_number, self.label
+            ),
             11..=19 => {
-                println!("[UDT] - SeqNum: {} - {} - Delay data", packet.sequence_number, self.label);
                 let delay = self.rng.gen_range(200..750);
-                    std::thread::sleep(Duration::from_millis(delay));
-                
-                },
+                std::thread::sleep(Duration::from_millis(delay));
+                println!(
+                    "[UDT] - SeqNum: {} - {} - Delay packet for {}ms...",
+                    packet.sequence_number, self.label, &delay
+                );
+                self.send(packet);
+            }
             20..=29 => {
                 println!(
                     "\n[UDT] - SeqNum: {} - {} - Corrupt Checksum",
@@ -64,7 +70,10 @@ impl UnreliableDataTransport {
             }
             _ => {
                 self.send(packet);
-                println!("[UDT] - SeqNum: {} - {} - Sent", packet.sequence_number, self.label);
+                println!(
+                    "[UDT] - SeqNum: {} - {} - Sent",
+                    packet.sequence_number, self.label
+                );
                 stdout().flush();
             }
         };
