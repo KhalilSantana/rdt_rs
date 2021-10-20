@@ -14,6 +14,7 @@ use std::thread;
 fn main() {
     let data_text = "Hello World!!!!!!!!!";
     let data = data_text.as_bytes();
+    println!("\nVersion 2.1: ");
     println!("\nServer sending data: {}", data_text);
     println!("Server sending data bytes: {:?}", data);
     let (tx_sender, rx_receiver) = channel();
