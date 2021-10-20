@@ -1,5 +1,5 @@
 #![allow(unused_must_use, dead_code)]
-mod enums;
+mod messages;
 mod packet;
 mod payload;
 mod rdt_receiver;
@@ -14,6 +14,7 @@ use std::thread;
 fn main() {
     let data_text = "Hello World! ABCDEFGHIJ";
     let data = data_text.as_bytes();
+    println!("\nVersion 3.0:");
     println!("\nServer sending data: {}", data_text);
     println!("Server sending data bytes: {:?}", data);
     let (tx_sender, rx_receiver) = channel();

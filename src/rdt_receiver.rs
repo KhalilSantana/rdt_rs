@@ -1,4 +1,4 @@
-use crate::enums::messages_receiver::messages_receiver::*;
+use crate::messages::messages_receiver::messages_receiver::*;
 use crate::packet::*;
 use crate::payload::*;
 use crate::udt::UnreliableDataTransport;
