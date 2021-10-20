@@ -4,6 +4,7 @@ use crate::packet::Packet;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 use std::io::{stdout, Write};
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct UnreliableDataTransport {
@@ -28,8 +29,8 @@ impl UnreliableDataTransport {
         }
     }
 
-    pub fn send(&self, pkt: &Packet) {
-        self.transmitter.send(pkt.clone());
+    pub fn send(&self, packet: &Packet) {
+        self.transmitter.send(packet.clone());
     }
 
     pub fn receive(&self) -> Result<Packet, std::sync::mpsc::RecvError> {
@@ -37,13 +38,15 @@ impl UnreliableDataTransport {
         Ok(response)
     }
 
+    pub fn maybe_receive(&self) -> Result<Packet, std::sync::mpsc::RecvTimeoutError> {
+        let response = self.receiver.recv_timeout(Duration::from_secs(1))?;
+        Ok(response)
+    }
+
     pub fn maybe_send(&mut self, packet: &Packet) {
         let _ = match self.rng.gen_range(0..100) {
-            //TODO: simular atraso de pacote
-           // thread::sleep(time::Duration::from_millis(10));
-
-            //0..=10 => println!("{} - Loss", pkt.seq_num),
-            //11..=19 => println!("{} - Corrupt data", pkt.seq_num),
+            //0..=10 => println!("{} - Loss", packet.sequence_number),
+            //11..=19 => println!("{} - Corrupt data", packet.sequence_number),
             20..=29 => {
                 println!(
                     "\n[UDT] - SeqNum: {} - {} - Corrupt Checksum",

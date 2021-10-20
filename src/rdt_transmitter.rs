@@ -2,9 +2,8 @@ use crate::packet::*;
 use crate::payload::*;
 use crate::udt::UnreliableDataTransport;
 use std::io::{stdout, Write};
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender};
 use crate::enums::messages_transmitter::messages_transmitter::*;
-use timer::Timer;
 
 #[derive(Debug)]
 pub struct ReliableDataTransportTransmitter {
@@ -37,16 +36,16 @@ impl ReliableDataTransportTransmitter {
         }
     }
 
-    pub fn next(&mut self, data_buff: Payload) -> Result<(), std::sync::mpsc::RecvError> {
+    pub fn next(&mut self, data_buff: Payload) -> Result<(), std::sync::mpsc::RecvTimeoutError> {
         self.received_data = false;
         match self.state {
             RdtTransmitterState::WaitingZero => {
-                let packet = self.udt_layer.receive()?;
+                let packet = self.udt_layer.maybe_receive()?;
 
                 self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 0, packet)
             }
             RdtTransmitterState::WaitingOne => {
-                let packet = self.udt_layer.receive()?;
+                let packet = self.udt_layer.maybe_receive()?;
 
                 self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 1, packet);
             }
@@ -82,15 +81,15 @@ impl ReliableDataTransportTransmitter {
 
         send_data(self, data_buff);
 
-        //TODO: adiciona o time out
-        let (tx, rx) = channel();
-        Timer::new().schedule_with_delay(chrono::Duration::nanoseconds(1),move || {
-            tx.send(()).unwrap();
-            //TODO: reenvia o pacote
-            send_data(self, data_buff);
-            println!("\nTIME OUT!!!!!!!!!!!!!\n");
-        });
-        rx.recv().unwrap();
+        // //TODO: adiciona o time out
+        // let (tx, rx) = channel();
+        // Timer::new().schedule_with_delay(chrono::Duration::nanoseconds(1),move || {
+        //     tx.send(()).unwrap();
+        //     //TODO: reenvia o pacote
+        //     send_data(self, data_buff);
+        //     println!("\nTIME OUT!!!!!!!!!!!!!\n");
+        // });
+        // rx.recv().unwrap();
 
         self.received_data = true;
     }
