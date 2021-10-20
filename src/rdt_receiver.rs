@@ -39,7 +39,8 @@ impl ReliableDataTransportReceiver {
                 if packet.checksum_ok() && packet.sequence_number == 0 {
                     self.data_buff.push(packet.payload);
                     log_message_receiver_payload(packet.sequence_number);
-                    send_response(self, PacketType::Acknowlodge, self.sequence_number);
+
+                    send_response(self, PacketType::Acknowlodge, self.sequence_number, self.sequence_number);
 
                     self.sequence_number = 1;
                     self.next_state = RdtReceiverState::WaitingOne;
@@ -47,12 +48,16 @@ impl ReliableDataTransportReceiver {
 
                 if !packet.checksum_ok() {
                     log_message_receiver_garbage(packet.sequence_number);
-                    send_response(self, PacketType::NotAcklodge, self.sequence_number)
+                    let mut nack_number: u32 = 0;
+                    if self.sequence_number == 0 {
+                        nack_number = 1;
+                    }
+                    send_response(self, PacketType::NotAcklodge, self.sequence_number, nack_number)
                 }
 
                 if packet.checksum_ok() && packet.sequence_number == 1 {
                     log_message_receiver_dup(self.sequence_number);
-                    send_response(self, PacketType::Acknowlodge, 1)
+                    send_response(self, PacketType::Acknowlodge, 1, self.sequence_number)
                 }
             }
 
@@ -65,16 +70,16 @@ impl ReliableDataTransportReceiver {
 
                     self.sequence_number = 0;
                     self.next_state = RdtReceiverState::WaitingZero;
-                    send_response(self, PacketType::Acknowlodge, 1);
+                    send_response(self, PacketType::Acknowlodge, 1,self.sequence_number);
                 }
 
                 if !packet.checksum_ok() {
                     log_message_receiver_garbage(packet.sequence_number);
-                    send_response(self, PacketType::NotAcklodge, 1)
+                    send_response(self, PacketType::NotAcklodge, 1, 0)
                 }
                 if packet.checksum_ok() && packet.sequence_number == 0 {
                     log_message_receiver_dup(self.sequence_number);
-                    send_response(self, PacketType::Acknowlodge, 0)
+                    send_response(self, PacketType::Acknowlodge, 0, self.sequence_number)
                 }
             }
         }
@@ -98,7 +103,7 @@ impl ReliableDataTransportReceiver {
 
 }
 
-fn send_response(rdt_receiver: &mut ReliableDataTransportReceiver, packet_type: PacketType, sequence_number: u32) {
+fn send_response(rdt_receiver: &mut ReliableDataTransportReceiver, packet_type: PacketType, sequence_number: u32, nack_number: u32) {
     match packet_type {
         PacketType::Acknowlodge => {
             let packet = &Packet::ack(sequence_number);
@@ -107,7 +112,7 @@ fn send_response(rdt_receiver: &mut ReliableDataTransportReceiver, packet_type: 
         }
 
         PacketType::NotAcklodge => {
-            let packet = &Packet::nack(sequence_number);
+            let packet = &Packet::nack(nack_number, sequence_number);
             log_message_receiver_sending_nack(sequence_number, packet);
             rdt_receiver.udt_layer.maybe_send(packet);
         }

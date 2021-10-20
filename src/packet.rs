@@ -3,6 +3,7 @@ use crate::payload::*;
 #[derive(Debug, Clone)]
 pub struct Packet {
     pub sequence_number: u32,
+    pub nack_number: u32,
     pub packet_type: PacketType,
     pub payload: Payload,
     pub checksum: u8,
@@ -18,6 +19,7 @@ impl Packet {
     pub fn new(sequence_number: u32, packet_type: PacketType, payload: Payload) -> Self {
         let mut variable_temporary = Packet {
             sequence_number,
+            nack_number: sequence_number,
             packet_type,
             payload,
             checksum: 0,
@@ -29,6 +31,7 @@ impl Packet {
     pub fn ack(sequence_number: u32) -> Self {
         let mut packet = Packet {
             sequence_number,
+            nack_number: sequence_number,
             packet_type: PacketType::Acknowlodge,
             payload: Payload::new([0; 5]),
             checksum: 0,
@@ -37,10 +40,11 @@ impl Packet {
         packet
     }
 
-    pub fn nack(sequence_number: u32) -> Self {
+    pub fn nack(nack_number: u32, ack_number: u32) -> Self {
         let mut packet = Packet {
-            sequence_number,
-            packet_type: PacketType::NotAcklodge,
+            sequence_number: ack_number,
+            nack_number,
+            packet_type: PacketType::Acknowlodge,
             payload: Payload::new([0; 5]),
             checksum: 0,
         };
@@ -51,6 +55,7 @@ impl Packet {
     pub fn data(sequence_number: u32, payload: Payload) -> Self {
         let mut packet = Packet {
             sequence_number,
+            nack_number: sequence_number,
             packet_type: PacketType::Data,
             payload,
             checksum: 0,
