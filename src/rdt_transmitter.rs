@@ -11,7 +11,7 @@ pub struct ReliableDataTransportTransmitter {
     next_state: RdtTransmitterState,
     sequence_number: u32,
     udt_layer: UnreliableDataTransport,
-    is_done: bool,
+    received_data: bool,
     label: &'static str,
 }
 
@@ -31,7 +31,7 @@ impl ReliableDataTransportTransmitter {
             next_state: RdtTransmitterState::WaitingZero,
             sequence_number: 0,
             udt_layer: UnreliableDataTransport::new(transmitter, receiver, "TRANSMITTER -> RECEIVER", rng_seed),
-            is_done: false,
+            received_data: false,
             label: "TRANSMITTER -> RECEIVER",
         }
     }
@@ -39,42 +39,38 @@ impl ReliableDataTransportTransmitter {
     pub fn next(&mut self, data_buff: Payload) -> Result<(), std::sync::mpsc::RecvError> {
         match self.state {
             RdtTransmitterState::WaitingZero => {
-                let packet = self.udt_layer.receive()?;
-
-                if packet.checksum_ok() && packet.packet_type == PacketType::Acknowlodge && packet.sequence_number == 0 {
-                    log_message_transmitter_received_ack(packet.sequence_number as usize);
-                    stdout().flush();
-
-                    self.sequence_number = 1;
-                    self.next_state = RdtTransmitterState::WaitingOne;
-                }else {
-                    log_message_transmitter_failed(self.sequence_number, data_buff);
-                    stdout().flush();
-                }
-
-                send_data(self, data_buff);
+                self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 0)
             }
             RdtTransmitterState::WaitingOne => {
-                let packet = self.udt_layer.receive()?;
-
-                if packet.checksum_ok() && packet.packet_type == PacketType::Acknowlodge && packet.sequence_number == 1 {
-                    log_message_transmitter_received_ack(packet.sequence_number as usize);
-                    stdout().flush();
-
-                    self.sequence_number = 0;
-                    self.next_state = RdtTransmitterState::WaitingZero;
-                } else {
-                    log_message_transmitter_failed(self.sequence_number, data_buff);
-                    stdout().flush();
-                }
-
-                send_data(self, data_buff);
+                self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 1);
             }
             RdtTransmitterState::SendData => send_data(self, data_buff),
         }
 
         self.state = self.next_state;
         Ok(())
+    }
+
+    pub fn received_data(&mut self) -> bool {
+        self.received_data
+    }
+
+    fn generic_waiting(&mut self, data_buff: Payload, next_state: RdtTransmitterState, expected_sequence_number: u32) {
+        let packet = self.udt_layer.receive()?;
+
+        if packet.checksum_ok() && packet.packet_type == PacketType::Acknowlodge && packet.sequence_number == expected_sequence_number {
+            log_message_transmitter_received_ack(packet.sequence_number as usize);
+            stdout().flush();
+
+            self.received_data = true;
+            self.sequence_number = 0;
+            self.next_state = next_state;
+        } else {
+            log_message_transmitter_failed(self.sequence_number, data_buff);
+            stdout().flush();
+        }
+
+        send_data(self, data_buff);
     }
 }
 

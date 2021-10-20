@@ -28,7 +28,9 @@ fn main() {
             if rdt_transmitter.next(*buffed_data.first().unwrap()).is_err() {
                 return;
             };
-            buffed_data.remove(0);
+            if rdt_transmitter.received_data() {
+                buffed_data.remove(0);
+            }
         }
 
         println!("\n[RDT] == Entire data buffer sent, quitting ==");
