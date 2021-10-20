@@ -99,6 +99,7 @@ impl ReliableDataTransportTransmitter {
                 }
                 self.next_state = next_state;
                 self.received_data = true;
+                return;
             } else {
                 log_message_transmitter_failed(self.sequence_number, data_buff);
                 stdout().flush();

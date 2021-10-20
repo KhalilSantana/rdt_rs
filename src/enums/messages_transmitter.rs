@@ -30,7 +30,7 @@ pub mod messages_transmitter {
     }
     pub fn log_message_transmitter_timeout(sequence_number: u32) {
         println!(
-            "[RDT] - SeqNum: {} - RECEIVER    - Timed-out waiting for response..",
+            "[RDT] - SeqNum: {} - TRANSMITTER    - Timed-out waiting for response..",
             sequence_number
         );
     }
