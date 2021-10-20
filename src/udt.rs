@@ -4,6 +4,7 @@ use crate::packet::Packet;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 use std::io::{stdout, Write};
+use crate::enums::messages_udt::messages_receiver::{log_message_udt_sent, log_message_udt_corrupt};
 
 #[derive(Debug)]
 pub struct UnreliableDataTransport {
@@ -42,10 +43,7 @@ impl UnreliableDataTransport {
             //0..=10 => println!("{} - Loss", pkt.seq_num),
             //11..=19 => println!("{} - Corrupt data", pkt.seq_num),
             20..=29 => {
-                println!(
-                    "\n[UDT] - SeqNum: {} - {} - Corrupt Checksum",
-                    packet.sequence_number, self.label
-                );
+               log_message_udt_corrupt(packet.sequence_number, self.label);
                 stdout().flush();
                 let mut packet2 = packet.clone();
                 packet2.corrupt_headers();
@@ -53,7 +51,7 @@ impl UnreliableDataTransport {
             }
             _ => {
                 self.send(packet);
-                println!("[UDT] - SeqNum: {} - {} - Sent", packet.sequence_number, self.label);
+                log_message_udt_sent(packet.sequence_number, self.label);
                 stdout().flush();
             }
         };
