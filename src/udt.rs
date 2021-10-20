@@ -38,15 +38,20 @@ impl UnreliableDataTransport {
         Ok(response)
     }
 
-    pub fn maybe_receive(&self) -> Result<Packet, std::sync::mpsc::RecvTimeoutError> {
-        let response = self.receiver.recv_timeout(Duration::from_secs(1))?;
+    pub fn maybe_receive(&mut self) -> Result<Packet, std::sync::mpsc::RecvTimeoutError> {
+        let response = self.receiver.recv_timeout(Duration::from_millis(500))?;
         Ok(response)
     }
 
     pub fn maybe_send(&mut self, packet: &Packet) {
         let _ = match self.rng.gen_range(0..100) {
-            //0..=10 => println!("{} - Loss", packet.sequence_number),
-            //11..=19 => println!("{} - Corrupt data", packet.sequence_number),
+            0..=10 => println!("[UDT] - SeqNum: {} - {} - Loss", packet.sequence_number, self.label),
+            11..=19 => {
+                println!("[UDT] - SeqNum: {} - {} - Delay data", packet.sequence_number, self.label);
+                let delay = self.rng.gen_range(200..750);
+                    std::thread::sleep(Duration::from_millis(delay));
+                
+                },
             20..=29 => {
                 println!(
                     "\n[UDT] - SeqNum: {} - {} - Corrupt Checksum",
