@@ -37,12 +37,17 @@ impl ReliableDataTransportTransmitter {
     }
 
     pub fn next(&mut self, data_buff: Payload) -> Result<(), std::sync::mpsc::RecvError> {
+        self.received_data = false;
         match self.state {
             RdtTransmitterState::WaitingZero => {
-                self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 0)
+                let packet = self.udt_layer.receive()?;
+
+                self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 0, packet)
             }
             RdtTransmitterState::WaitingOne => {
-                self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 1);
+                let packet = self.udt_layer.receive()?;
+
+                self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 1, packet);
             }
             RdtTransmitterState::SendData => send_data(self, data_buff),
         }
@@ -55,22 +60,26 @@ impl ReliableDataTransportTransmitter {
         self.received_data
     }
 
-    fn generic_waiting(&mut self, data_buff: Payload, next_state: RdtTransmitterState, expected_sequence_number: u32) {
-        let packet = self.udt_layer.receive()?;
+    fn generic_waiting(&mut self, data_buff: Payload, next_state: RdtTransmitterState, expected_sequence_number: u32, packet: Packet) {
 
         if packet.checksum_ok() && packet.packet_type == PacketType::Acknowlodge && packet.sequence_number == expected_sequence_number {
             log_message_transmitter_received_ack(packet.sequence_number as usize);
             stdout().flush();
 
-            self.received_data = true;
-            self.sequence_number = 0;
+            if packet.sequence_number == 0 {
+                self.sequence_number = 1;
+            }else {
+                self.sequence_number = 0;
+            }
             self.next_state = next_state;
+
         } else {
             log_message_transmitter_failed(self.sequence_number, data_buff);
             stdout().flush();
         }
 
         send_data(self, data_buff);
+        self.received_data = true;
     }
 }
 
