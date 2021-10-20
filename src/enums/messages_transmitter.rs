@@ -16,7 +16,12 @@ pub mod messages_transmitter {
     }
 
     pub fn log_message_transmitter_sending (sequence_number: u32, packet: &Packet)  {
-        println!("\n[RDT] - SeqNum: {} - TRANSMITTER -  Sending - {}", sequence_number, packet);
+        println!("\n[RDT] - SeqNum: {} - TRANSMITTER -  Sending - {{", sequence_number);
+        println!("   Sequence_number - {}",  packet.sequence_number);
+        println!("   Packet_type - {}" ,  packet.packet_type);
+        println!("   Checksum - {}" ,  packet.checksum);
+        println!("   Payload - {}" ,  packet.payload);
+        println!(" }}\n");
     }
 }
 

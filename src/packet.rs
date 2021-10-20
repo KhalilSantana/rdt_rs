@@ -95,3 +95,9 @@ impl std::fmt::Display for Packet {
         write!(f, "{:?}", self)
     }
 }
+
+impl std::fmt::Display for PacketType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
