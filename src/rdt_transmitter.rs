@@ -47,22 +47,17 @@ impl ReliableDataTransportTransmitter {
                 let maybe_packet = self.udt_layer.maybe_receive();
                 if maybe_packet.is_err() {
                     log_message_transmitter_timeout(self.sequence_number);
-                    self.generic_waiting(
-                        data_buff,
-                        RdtTransmitterState::WaitingZero,
-                        0,
-                        Packet::data(255, [0; 5]).corrupt_headers(),
-                    );
+                    self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 0, None);
                     return Ok(());
                 }
                 let packet = maybe_packet.unwrap();
 
-                self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 0, packet)
+                self.generic_waiting(data_buff, RdtTransmitterState::WaitingOne, 0, Some(packet))
             }
             RdtTransmitterState::WaitingOne => {
                 let packet = self.udt_layer.maybe_receive()?;
 
-                self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 1, packet);
+                self.generic_waiting(data_buff, RdtTransmitterState::WaitingZero, 1, Some(packet));
             }
             RdtTransmitterState::SendData => send_data(self, data_buff),
         }
@@ -80,26 +75,29 @@ impl ReliableDataTransportTransmitter {
         data_buff: Payload,
         next_state: RdtTransmitterState,
         expected_sequence_number: u32,
-        packet: Packet,
+        maybe_packet: Option<Packet>,
     ) {
-        if packet.checksum_ok()
-            && packet.packet_type == PacketType::Acknowlodge
-            && packet.sequence_number == expected_sequence_number
-        {
-            log_message_transmitter_received_ack(packet.sequence_number as usize);
-            stdout().flush();
+        if maybe_packet.is_some() {
+            let packet = maybe_packet.unwrap();
+            if packet.checksum_ok()
+                && packet.packet_type == PacketType::Acknowlodge
+                && packet.sequence_number == expected_sequence_number
+            {
+                log_message_transmitter_received_ack(packet.sequence_number as usize);
+                stdout().flush();
 
-            if packet.sequence_number == 0 {
-                self.sequence_number = 1;
+                if packet.sequence_number == 0 {
+                    self.sequence_number = 1;
+                } else {
+                    self.sequence_number = 0;
+                }
+                self.next_state = next_state;
+
+                //TODO: remove o time out
             } else {
-                self.sequence_number = 0;
+                log_message_transmitter_failed(self.sequence_number, data_buff);
+                stdout().flush();
             }
-            self.next_state = next_state;
-
-            //TODO: remove o time out
-        } else {
-            log_message_transmitter_failed(self.sequence_number, data_buff);
-            stdout().flush();
         }
 
         send_data(self, data_buff);

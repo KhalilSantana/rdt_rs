@@ -42,7 +42,6 @@ fn main() {
             if rdt_receiver.next().is_err() {
                 break;
             }
-            println!("\nClient got data: {:?}", rdt_receiver.get_data());
         }
         println!("\nClient got data: {:?}", rdt_receiver.get_data());
         println!(
