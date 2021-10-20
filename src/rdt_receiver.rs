@@ -114,14 +114,16 @@ impl ReliableDataTransportReceiver {
 
     pub fn get_data(&self) -> Vec<u8> {
         let mut output: Vec<u8> = Vec::with_capacity(self.data_buff.len());
-        for i in self.data_buff.iter() {
-            for element in i.content.iter() {
-                output.push(*element);
+        if !self.data_buff.is_empty() {
+            for i in self.data_buff.iter() {
+                for element in i.content.iter() {
+                    output.push(*element);
+                }
             }
-        }
-        let padding = self.data_buff.last().unwrap().padding;
-        if padding != 0 {
-            output.truncate(output.len() - padding as usize);
+            let padding = self.data_buff.last().unwrap().padding;
+            if padding != 0 {
+                output.truncate(output.len() - padding as usize);
+            }
         }
         output
     }

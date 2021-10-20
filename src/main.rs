@@ -12,7 +12,7 @@ use std::sync::mpsc::channel;
 use std::thread;
 
 fn main() {
-    let data_text = "Hello World!!!!!!!!!";
+    let data_text = "Hello World! ABCDEFGHIJ";
     let data = data_text.as_bytes();
     println!("\nServer sending data: {}", data_text);
     println!("Server sending data bytes: {:?}", data);
@@ -42,6 +42,7 @@ fn main() {
             if rdt_receiver.next().is_err() {
                 break;
             }
+            println!("\nClient got data: {:?}", rdt_receiver.get_data());
         }
         println!("\nClient got data: {:?}", rdt_receiver.get_data());
         println!(
